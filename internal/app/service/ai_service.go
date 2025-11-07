@@ -16,9 +16,9 @@ func NewAIService() *AIService {
 	return &AIService{}
 }
 
-// IsContenteSafe 检查给定内容是否安全
+// IsContentSafe 检查给定内容是否安全
 // mock实现，未来会调用实际的AI内容审核服务
-func (s *AIService) IsContenteSafe(content string) (bool, error) {
+func (s *AIService) IsContentSafe(content string) (bool, error) {
 	// 模拟内容审核逻辑,未来真正调用AI SDK
 	fmt.Printf("ai审核mock:正在审核内容:%s\n", content)
 	//返回true表示内容安全，nil表示没有错误
