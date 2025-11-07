@@ -5,7 +5,7 @@ import "gorm.io/gorm"
 
 type Wish struct {
 	gorm.Model
-	// 数据填充需要
+	
 	UserID   uint   `gorm:"not null;index" json:"user_id"`                    // 用户ID，外键关联User表
 	Content  string `gorm:"not null;size:512" json:"content"`                 // 愿望内容
 	IsPublic bool   `gorm:"not null;default:true" json:"is_public"`           // 是否公开
