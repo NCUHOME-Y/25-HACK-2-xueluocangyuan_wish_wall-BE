@@ -1,3 +1,4 @@
+
 package model
 
 import (
@@ -8,7 +9,6 @@ import (
 
 type User struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	StudentID string         `gorm:"size:20;uniqueIndex;not null" json:"studentId"`
 	Password  string         `gorm:"size:255;not null" json:"-"`
 	Nickname  string         `gorm:"size:50;not null;default:''" json:"nickname"`
 	AvatarID  *uint          `gorm:"default:null" json:"avatarId"`
@@ -23,6 +23,9 @@ type User struct {
 	Likes     []Like     `gorm:"foreignKey:UserID" json:"likes,omitempty"`
 	Comments  []Comment  `gorm:"foreignKey:UserID" json:"comments,omitempty"`
 	UserSkins []UserSkin `gorm:"foreignKey:UserID" json:"userSkins,omitempty"`
+  
+  Role string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
+
 }
 
 // TableName 指定表名
