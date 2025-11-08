@@ -8,8 +8,8 @@ type User struct {
 	Username string `gorm:"uniqueIndex;size:64;not null" json:"username"` // 用户名，唯一且非空
 	Password string `gorm:"not null;size:255" json:"-"`                   // 密码，非空
 	Nickname string `gorm:"size:64" json:"nickname"`                      // 昵称
-	Avatar   string `gorm:"size:255" json:"avatar"`                      // 头像URL
+	Avatar   string `gorm:"size:255" json:"avatar"`                       // 头像URL
 
-	Role                 string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
-	HasCompletedV2Review bool   `gorm:"default:false" json:"-"`
+	Role string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
+	//v2修改了，不再需要HasCompletedV2Review字段
 }
