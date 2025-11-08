@@ -10,9 +10,9 @@ import (
 	"gorm.io/gorm"
 
 	
-	"log" // 暂时用标准库 log 替代 zap，防止 panic
+	//"log"  暂时用标准库 log 替代 zap，防止 panic
 	"os"  // 读取环境变量
-	// "go.uber.org/zap"
+	"go.uber.org/zap"
 )
 
 var DB *gorm.DB
@@ -25,8 +25,8 @@ func InitDB() {
 		
 		// 在 logger.go 封装好之前，直接调用 zap.S() 会导致 panic。
 		// 先使用标准库 log 来打印警告。
-		log.Println("警告：环境变量 MYSQL_DSN 未设置，使用默认值连接数据库")
-		// zap.S().Warn("环境变量MYSQL_DSN未设置，使用默认值连接数据库")
+		//log.Println("警告：环境变量 MYSQL_DSN 未设置，使用默认值连接数据库")
+		 zap.S().Warn("环境变量MYSQL_DSN未设置,使用默认值连接数据库")
 	}
 	
 	//连接数据库
@@ -36,22 +36,25 @@ func InitDB() {
 	})
 	//检查连接错误
 	if err != nil {
-		log.Fatalf("错误：数据库连接失败: %v", err)
+		zap.S().Fatalf("错误：数据库连接失败: %v", err)
 	}
 
-	log.Println("数据库连接成功！")
+	zap.S().Info("数据库连接成功！")
 
 	// Gorm 会自动检查 `User` 和 `Wish` 表是否存在
 	// 如果不存在，Gorm 会根据你 model/ 目录下的结构体自动创建它们
 	err = DB.AutoMigrate(
 		&model.User{},
 		&model.Wish{},
+		&model.Like{},    
+		&model.Comment{}, 
+		&model.WishTag{}, 
 	)
 
 	// 检查迁移错误
 	if err != nil {
-		log.Fatalf("数据库迁移失败: %v", err)
+		zap.S().Fatalf("错误：数据库迁移失败: %v", err)
 	}
 
-	log.Println("数据库迁移成功！")
+	zap.S().Info("数据库迁移成功！")
 }

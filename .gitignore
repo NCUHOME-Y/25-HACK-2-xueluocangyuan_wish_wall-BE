@@ -1,0 +1,57 @@
+# Binaries for programs and plugins
+/*.exe
+/*.dll
+/*.so
+/*.dylib
+/*.test
+/bin/
+
+# Output of 'go build'
+*.out
+
+# Dependency directories (remove the comment to include vendor if you check it in)
+/vendor/
+
+# Go workspace file (if present)
+go.work
+
+# Ignore Go module checksum (optional)
+go.sum
+
+# Editor directories and files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (may contain secrets)
+.env
+.env.*
+
+# Logs and temporary files
+*.log
+/tmp/
+/var/
+
+# Test & coverage
+coverage.out
+*.prof
+
+# Build directories
+/build/
+/dist/
+
+# Tooling caches
+.cache/
+
+# Node modules (if any front-end exists)
+node_modules/
+
+# Terraform
+.terraform/
+
+# Jetbrains
+out/

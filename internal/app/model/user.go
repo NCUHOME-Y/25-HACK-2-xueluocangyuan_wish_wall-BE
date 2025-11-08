@@ -17,12 +17,13 @@ type User struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	Username  string         `gorm:"size:50;not null;uniqueIndex" json:"username"`
 
 	// 关联关系
 	Wishes    []Wish     `gorm:"foreignKey:UserID" json:"wishes,omitempty"`
 	Likes     []Like     `gorm:"foreignKey:UserID" json:"likes,omitempty"`
 	Comments  []Comment  `gorm:"foreignKey:UserID" json:"comments,omitempty"`
-	UserSkins []UserSkin `gorm:"foreignKey:UserID" json:"userSkins,omitempty"`
+	
   
   Role string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
 
