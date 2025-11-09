@@ -6,16 +6,20 @@ import (
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
+	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/util"
-
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 // RegisterRequest 定义了注册时前端传来的 JSON 结构
 type RegisterRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
@@ -37,7 +41,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	// 1. 绑定 JSON 请求体
 	if err := c.ShouldBindJSON(&req); err != nil {
 		// 如果前端没传 username 或 password
-		zap.S().Warnw("注册请求参数绑定失败", "error", err.Error())
+		logger.Log.Warnw("注册请求参数绑定失败", "error", err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
 			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
@@ -46,9 +50,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 2. 验证业务逻辑 
+	// 2. 验证业务逻辑
 	if len(req.Username) != 10 {
-		zap.S().Warnw("注册失败：学号不为10位", "username", req.Username)
+		logger.Log.Warnw("注册失败：学号不为10位", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
 			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
@@ -61,7 +65,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	var existingUser model.User
 	if err := db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
 		// 找到了用户，说明已被注册
-		zap.S().Warnw("注册失败：用户名已存在", "username", req.Username)
+		logger.Log.Warnw("注册失败：用户名已存在", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_PARAM_INVALID, // 同样是参数错误
 			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
@@ -70,7 +74,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	} else if err != gorm.ErrRecordNotFound {
 		// 如果是数据库查询出错，这是服务器内部错误
-		zap.S().Errorw("注册时查询用户失败", "error", err)
+		logger.Log.Errorw("注册时查询用户失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
 			"msg":  apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
@@ -82,7 +86,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	// 4. 加密密码
 	hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if hashErr != nil {
-		zap.S().Errorw("注册时密码加密失败", "error", hashErr)
+		logger.Log.Errorw("注册时密码加密失败", "error", hashErr)
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
 			"msg":  "服务器内部错误",
@@ -101,7 +105,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	}
 
 	if createErr := db.Create(&newUser).Error; createErr != nil {
-		zap.S().Errorw("创建用户到数据库失败", "error", createErr)
+		logger.Log.Errorw("创建用户到数据库失败", "error", createErr)
 		c.JSON(http.StatusOK, gin.H{
 			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
 			"msg":  "注册失败，请稍后重试",
@@ -110,22 +114,22 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	zap.S().Infow("新用户注册成功", "username", newUser.Username, "userID", newUser.ID)
+	logger.Log.Infow("新用户注册成功", "username", newUser.Username, "userID", newUser.ID)
 
 	// 6. 生成 Token
 	token, tokenErr := util.GenerateToken(newUser.ID)
 	if tokenErr != nil {
-		zap.S().Errorw("注册成功但生成 Token 失败", "error", tokenErr)
+		logger.Log.Errorw("注册成功但生成 Token 失败", "error", tokenErr)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"msg":  "注册成功，但登录失败",
-			"data": gin.H{},
+			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
+			"message": "注册成功，但登录失败",
+			"data":    gin.H{},
 		})
 		return
 	}
 
 	// 7. 返回成功响应
-	// 准备返回给前端的用户信息 
+	// 准备返回给前端的用户信息
 	responseUser := UserResponse{
 		ID:        newUser.ID,
 		Username:  newUser.Username,
@@ -142,5 +146,78 @@ func Register(c *gin.Context, db *gorm.DB) {
 			"token": token,
 			"user":  responseUser,
 		},
+	})
+}
+
+func Login(c *gin.Context, db *gorm.DB) {
+	var req LoginRequest
+
+	//  绑定 JSON 请求体
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.Warnw("登录请求参数绑定失败", "error", err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "用户名和密码均不能为空"},
+		})
+		return
+	}
+	//查找用户
+	var user model.User
+	if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			//未找到用户
+			logger.Log.Infow("登陆失败。用户不存在", "username", req.Username)
+		} else {
+			//其他数据库错误
+			logger.Log.Errorw("登录时查询用户失败", "error", err)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_LOGIN_FAILED,
+			"message": "fail",
+			"data":    gin.H{"error": "用户名或密码错误"},
+		})
+		return
+
+	}
+	//验证密码
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		//密码错误
+		logger.Log.Infow("登录失败。密码错误", "username", req.Username)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_LOGIN_FAILED,
+			"message": "fail",
+			"data":    gin.H{"error": "用户名或密码错误"},
+		})
+		return
+	}
+	//生成token
+	token, tokenErr := util.GenerateToken(user.ID)
+	if tokenErr != nil {
+		logger.Log.Errorw("登陆成功但生成Token失败", "error", tokenErr)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_SERVER_ERROR,
+			"message": "服务器内部错误",
+			"data":    gin.H{},
+		})
+		return
+	}
+	//登陆成功，返回token和用户信息
+	logger.Log.Infow("用户登录成功", "username", req.Username)
+
+	respondUser := UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Nickname:  user.Nickname,
+		AvatarID:  user.AvatarID,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    apperr.SUCCESS,
+		"message": "登录成功",
+		"data":    gin.H{"token": token, "user": respondUser},
 	})
 }

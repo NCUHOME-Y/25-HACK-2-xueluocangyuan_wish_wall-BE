@@ -28,5 +28,15 @@ func InitLogger() {
 	}
 
 	zap.ReplaceGlobals(logger)
-	zap.S().Info("zap logger 初始化成功")
+	// 初始化包级 SugaredLogger 变量，方便其他包统一调用
+	Log = logger.Sugar()
+	Log.Info("zap logger 初始化成功")
+}
+
+// Log 是包级导出的 SugaredLogger，供项目其他包直接调用，例如 logger.Log.Infow(...)
+var Log *zap.SugaredLogger
+
+// GetLogger 返回底层 *zap.Logger（如果需要）
+func GetLogger() *zap.Logger {
+	return zap.L()
 }
