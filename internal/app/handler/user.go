@@ -317,3 +317,26 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 		"data":    responseUser,
 	})
 }
+
+// CompleteV2Review 标记当前用户已完成 V2 审核（占位实现）
+func CompleteV2Review(c *gin.Context, db *gorm.DB) {
+	// 从上下文获取 userID（JWT 中间件应当注入）
+	uid, ok := c.Get("userID")
+	if !ok {
+		logger.Log.Warnw("CompleteV2Review: 未找到 userID 上下文")
+		c.JSON(http.StatusOK, gin.H{
+			"code": apperr.ERROR_UNAUTHORIZED,
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
+			"data": gin.H{},
+		})
+		return
+	}
+
+	// 简单记录并返回成功（生产应更新 DB 字段）
+	logger.Log.Infow("CompleteV2Review: 标记完成", "userID", uid)
+	c.JSON(http.StatusOK, gin.H{
+		"code": apperr.SUCCESS,
+		"message": "已标记为已完成 V2 审核",
+		"data":  gin.H{},
+	})
+}
