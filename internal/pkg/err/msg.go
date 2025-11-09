@@ -31,7 +31,7 @@ var MsgFlags = map[int]string{
 	ERROR_SERVER_ERROR:      "服务器错误",
 	ERROR_WISH_DELETED:      "该心愿不存在或已被删除",
 	ERROR_WISH_NOT_FOUND:    "未找到指定心愿",
-	ERROR_FORBIDDEN_COMMENT: "禁止评论",
+	ERROR_FORBIDDEN_COMMENT: "无法给该愿望评论",
 	ERROR_LIKE_FAILED:       "点赞失败，请稍后再试",
 }
 

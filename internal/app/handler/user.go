@@ -46,7 +46,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 2. 验证业务逻辑 (按你的 API 文档来)
+	// 2. 验证业务逻辑 
 	if len(req.Username) != 10 {
 		zap.S().Warnw("注册失败：学号不为10位", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
@@ -113,7 +113,6 @@ func Register(c *gin.Context, db *gorm.DB) {
 	zap.S().Infow("新用户注册成功", "username", newUser.Username, "userID", newUser.ID)
 
 	// 6. 生成 Token
-	// (我假设你有一个 util.GenerateToken 函数，它接收用户 ID)
 	token, tokenErr := util.GenerateToken(newUser.ID)
 	if tokenErr != nil {
 		zap.S().Errorw("注册成功但生成 Token 失败", "error", tokenErr)
@@ -126,7 +125,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 7. 返回成功响应
-	// 准备返回给前端的用户信息 (!! 绝不包含密码 !!)
+	// 准备返回给前端的用户信息 
 	responseUser := UserResponse{
 		ID:        newUser.ID,
 		Username:  newUser.Username,
