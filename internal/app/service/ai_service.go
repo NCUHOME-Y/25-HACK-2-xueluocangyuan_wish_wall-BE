@@ -87,12 +87,13 @@ func CheckContent(content string) (isViolating bool, err error) {
 	respText := resp.Choices[0].Message.Content
 
 	//判断错误
-	if strings.Contains(respText, "false") {
+	respTextTrimmed := strings.TrimSpace(strings.ToLower(respText))
+	if respTextTrimmed == "false" {
 		logger.Log.Infow("AI内容审核:不安全愿望被丢弃", "content", content)
 		return true, nil
 	}
 	//正确
-	if strings.Contains(respText, "true") {
+	if respTextTrimmed == "true" {
 		logger.Log.Infow("AI内容审核:安全愿望被接受", "content", content)
 		return false, nil
 	}
