@@ -50,12 +50,12 @@ func LoggerMiddleware() gin.HandlerFunc {
 func RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// (使用 'apperr' 作为别名)
-		defer func() {
+		defer func() {// 捕获 Panic
 			if r := recover(); r != nil {
 				logger.Log.Errorw("服务器崩溃 (Panic)", "error", r)
 
 				c.JSON(http.StatusOK, gin.H{
-					"code":    apperr.ERROR_SERVER_ERROR,                // 你的标准 code: 10
+					"code":    apperr.ERROR_SERVER_ERROR,                // code: 10
 					"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR), // "服务器内部错误"
 					"data":    gin.H{},                                  // data 是空对象
 				})
@@ -84,7 +84,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": "非法的 Token 格式",
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{"error": "缺少 'Bearer ' 前缀"},
 			})
 			c.Abort()
