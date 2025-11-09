@@ -31,10 +31,3 @@ type InteractionHandler interface {
 	GetWishInteractions(c *gin.Context)
 }
 
-type SkinHandler interface {
-	GetSkins(c *gin.Context)
-	RedeemSkin(c *gin.Context)
-	GetMySkins(c *gin.Context)
-	ActivateSkin(c *gin.Context)
-	HitMokuyu(c *gin.Context)
-}
