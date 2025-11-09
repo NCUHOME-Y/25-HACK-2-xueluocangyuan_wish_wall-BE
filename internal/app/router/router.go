@@ -59,9 +59,10 @@ func setupAuthRoutes(api *gin.RouterGroup, authHandler *handler.AuthHandler) {
 		auth.POST("/login", authHandler.Login)
 
 		// 需要认证的路由
-		auth.Use(middleware.JWTAuth())
-		auth.POST("/logout", authHandler.Logout)
-		auth.POST("/refresh", authHandler.RefreshToken)
+		authProtected := auth.Group("")
+		authProtected.Use(middleware.JWTAuth())
+		authProtected.POST("/logout", authHandler.Logout)
+		authProtected.POST("/refresh", authHandler.RefreshToken)
 	}
 }
 
