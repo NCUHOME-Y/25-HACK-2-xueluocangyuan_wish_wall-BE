@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
-	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
+	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"//诶诶还有命名冲突
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -22,6 +22,11 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type UpdateUserRequest struct {
+	Nickname *string `json:"nickname"`
+	AvatarID *uint   `json:"avatarId"` //指针可以用来区分未传和传了0
 }
 
 // UserResponse 定义了注册/登录成功时返回的用户信息
@@ -219,5 +224,119 @@ func Login(c *gin.Context, db *gorm.DB) {
 		"code":    apperr.SUCCESS,
 		"message": "登录成功",
 		"data":    gin.H{"token": token, "user": respondUser},
+	})
+}
+
+func GetUserMe(c *gin.Context, db *gorm.DB) {
+	//从中间件注入的上下文直接获取userID
+	userID, _ := c.Get("userID")
+
+	//查找用户
+	var user model.User
+	if err := db.First(&user, userID).Error; err != nil {
+		logger.Log.Errorw("GetUserMe: 查询用户失败", "userID", userID)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_UNAUTHORIZED,
+			"message": "用户不存在或已注销",
+			"data":    gin.H{},
+		})
+		return
+	}
+
+	// 返回用户信息
+	responseUser := UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Nickname:  user.Nickname,
+		AvatarID:  user.AvatarID,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    apperr.SUCCESS,
+		"message": "获取用户信息成功",
+		"data":    responseUser,
+	})
+}
+
+func UpdateUser(c *gin.Context, db *gorm.DB) {
+	var req UpdateUserRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.Warnw("更新用户请求参数绑定失败", "error", err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": "请检查输入的内容",
+			"data":    gin.H{"error": err.Error()},
+		})
+		return
+	}
+	//从中间件注入的上下文直接获取userID
+	userID, _ := c.Get("userID")
+	//查找用户
+	var user model.User
+	if err := db.First(&user, userID).Error; err != nil {
+		logger.Log.Errorw("UpdateUser: 查询用户失败", "userID", userID)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_UNAUTHORIZED,
+			"message": "用户不存在或已注销",
+			"data":    gin.H{},
+		})
+		return
+	}
+
+	//更新用户信息
+	if req.Nickname != nil {
+		user.Nickname = *req.Nickname
+	}
+	if req.AvatarID != nil {
+		user.AvatarID = req.AvatarID
+	}
+	if err := db.Save(&user).Error; err != nil {
+		logger.Log.Errorw("UpdateUser: 更新用户信息失败", "error", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_SERVER_ERROR,
+			"message": "服务器内部错误",
+			"data":    gin.H{},
+		})
+		return
+	}
+	//返回更新后的用户信息
+	responseUser := UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Nickname:  user.Nickname,
+		AvatarID:  user.AvatarID,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    apperr.SUCCESS,
+		"message": "更新用户信息成功",
+		"data":    responseUser,
+	})
+}
+
+// CompleteV2Review 标记当前用户已完成 V2 审核（占位实现）
+func CompleteV2Review(c *gin.Context, db *gorm.DB) {
+	// 从上下文获取 userID（JWT 中间件应当注入）
+	uid, ok := c.Get("userID")
+	if !ok {
+		logger.Log.Warnw("CompleteV2Review: 未找到 userID 上下文")
+		c.JSON(http.StatusOK, gin.H{
+			"code": apperr.ERROR_UNAUTHORIZED,
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
+			"data": gin.H{},
+		})
+		return
+	}
+
+	// 简单记录并返回成功（生产应更新 DB 字段）
+	logger.Log.Infow("CompleteV2Review: 标记完成", "userID", uid)
+	c.JSON(http.StatusOK, gin.H{
+		"code": apperr.SUCCESS,
+		"message": "已标记为已完成 V2 审核",
+		"data":  gin.H{},
 	})
 }
