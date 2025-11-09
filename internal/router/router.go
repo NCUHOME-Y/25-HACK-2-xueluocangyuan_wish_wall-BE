@@ -3,7 +3,6 @@ package router
 
 import (
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/handler"
-	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -35,7 +34,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		api.GET("/app-state", handler.GetAppState)
 
 		api.POST("/test-ai", func(c *gin.Context) {
-			handler.TestAI(c, db)
+			handler.TestAI(c)
 		})
 		/*
 			// 愿望墙 (公开)
