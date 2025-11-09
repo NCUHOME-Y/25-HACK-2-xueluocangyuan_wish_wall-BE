@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
-	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"//诶诶还有命名冲突
+	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err" //诶诶还有命名冲突
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -26,7 +26,7 @@ type LoginRequest struct {
 
 type UpdateUserRequest struct {
 	Nickname *string `json:"nickname"`
-	AvatarID *uint   `json:"avatarId"` //指针可以用来区分未传和传了0
+	AvatarID *uint   `json:"avatarID"` //指针可以用来区分未传和传了0
 }
 
 // UserResponse 定义了注册/登录成功时返回的用户信息
@@ -34,7 +34,7 @@ type UserResponse struct {
 	ID        uint      `json:"id"`
 	Username  string    `json:"username"`
 	Nickname  string    `json:"nickname"`
-	AvatarID  *uint     `json:"avatarId"`
+	AvatarID  *uint     `json:"avatarID"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -48,9 +48,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 		// 如果前端没传 username 或 password
 		logger.Log.Warnw("注册请求参数绑定失败", "error", err.Error())
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
-			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data": gin.H{"error": "用户名和密码均不能为空"},
+			"code":    apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "用户名和密码均不能为空"},
 		})
 		return
 	}
@@ -59,9 +59,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 	if len(req.Username) != 10 {
 		logger.Log.Warnw("注册失败：学号不为10位", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
-			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data": gin.H{"error": "输入错误，请输入十位学号"}, // API 文档里的标准错误
+			"code":    apperr.ERROR_PARAM_INVALID, // 我们的标准 code: 4
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "输入错误，请输入十位学号"}, // API 文档里的标准错误
 		})
 		return
 	}
@@ -72,18 +72,18 @@ func Register(c *gin.Context, db *gorm.DB) {
 		// 找到了用户，说明已被注册
 		logger.Log.Warnw("注册失败：用户名已存在", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_PARAM_INVALID, // 同样是参数错误
-			"msg":  apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data": gin.H{"error": "该学号已被注册"}, // 更具体的提示
+			"code":    apperr.ERROR_PARAM_INVALID, // 同样是参数错误
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "该学号已被注册"}, // 更具体的提示
 		})
 		return
 	} else if err != gorm.ErrRecordNotFound {
 		// 如果是数据库查询出错，这是服务器内部错误
 		logger.Log.Errorw("注册时查询用户失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"msg":  apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
-			"data": gin.H{},
+			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"data":    gin.H{},
 		})
 		return
 	}
@@ -93,9 +93,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 	if hashErr != nil {
 		logger.Log.Errorw("注册时密码加密失败", "error", hashErr)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"msg":  "服务器内部错误",
-			"data": gin.H{},
+			"code":   apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
+			"message": "服务器内部错误",
+			"data":   gin.H{},
 		})
 		return
 	}
@@ -112,9 +112,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 	if createErr := db.Create(&newUser).Error; createErr != nil {
 		logger.Log.Errorw("创建用户到数据库失败", "error", createErr)
 		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"msg":  "注册失败，请稍后重试",
-			"data": gin.H{},
+			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
+			"message": "注册失败，请稍后重试",
+			"data":    gin.H{},
 		})
 		return
 	}
@@ -145,8 +145,8 @@ func Register(c *gin.Context, db *gorm.DB) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": apperr.SUCCESS, // 200
-		"msg":  "注册成功",
+		"code":    apperr.SUCCESS, // 200
+		"message": "注册成功",
 		"data": gin.H{
 			"token": token,
 			"user":  responseUser,
@@ -315,28 +315,5 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 		"code":    apperr.SUCCESS,
 		"message": "更新用户信息成功",
 		"data":    responseUser,
-	})
-}
-
-// CompleteV2Review 标记当前用户已完成 V2 审核（占位实现）
-func CompleteV2Review(c *gin.Context, db *gorm.DB) {
-	// 从上下文获取 userID（JWT 中间件应当注入）
-	uid, ok := c.Get("userID")
-	if !ok {
-		logger.Log.Warnw("CompleteV2Review: 未找到 userID 上下文")
-		c.JSON(http.StatusOK, gin.H{
-			"code": apperr.ERROR_UNAUTHORIZED,
-			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
-			"data": gin.H{},
-		})
-		return
-	}
-
-	// 简单记录并返回成功（生产应更新 DB 字段）
-	logger.Log.Infow("CompleteV2Review: 标记完成", "userID", uid)
-	c.JSON(http.StatusOK, gin.H{
-		"code": apperr.SUCCESS,
-		"message": "已标记为已完成 V2 审核",
-		"data":  gin.H{},
 	})
 }

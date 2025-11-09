@@ -6,6 +6,7 @@ import (
 
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err" //诶诶还有命名冲突
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
+	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,4 +35,27 @@ func GetAppState(c *gin.Context) {
 		},
 	})
 
+}
+
+func TestAI(c *gin.Context) {
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(200, gin.H{"error": "gimme json: {\"content\": \"...\"}"})
+		return
+	}
+
+	// 直接调用你的 AI Service
+	isViolating, aiErr := service.CheckContent(req.Content)
+	if aiErr != nil {
+		c.JSON(200, gin.H{"error": aiErr.Error()})
+		return
+	}
+
+	// 把 AI 的原始结果直接返回给你
+	c.JSON(200, gin.H{
+		"input_content": req.Content,
+		"is_violating":  isViolating, // (true=违规, false=安全)
+	})
 }
