@@ -31,6 +31,16 @@ var (
 // isViolating= true 不安全，丢弃
 // isViolating= false 安全，接受
 func CheckContent(content string) (isViolating bool, err error) {
+	const maxContentLength = 1000
+	trimmedContent := strings.TrimSpace(content)
+	if trimmedContent == "" {
+		logger.Log.Warnw("内容审核失败:内容为空", "content", content)
+		return true, fmt.Errorf("内容不能为空")
+	}
+	if len([]rune(trimmedContent)) > maxContentLength {
+		logger.Log.Warnw("内容审核失败:内容过长", "content", content, "maxLength", maxContentLength)
+		return true, fmt.Errorf("内容长度不能超过%d个字符", maxContentLength)
+	}
 	apiKey := os.Getenv("SILICONFLOW_API_KEY") //从环境变量读取API Key
 	if apiKey == "" {
 		logger.Log.Errorw("AI内容审核失败:环境变量 SILICONFLOW_API_KEY 未设置", "env_var", "SILICONFLOW_API_KEY")
