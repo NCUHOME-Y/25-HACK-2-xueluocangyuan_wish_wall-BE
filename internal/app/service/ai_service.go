@@ -74,7 +74,7 @@ func CheckContent(content string) (isViolating bool, err error) {
 	)
 
 	if err != nil {
-		logger.Log.Errorw("SSilicon Flow API请求失败", "error", err)
+		logger.Log.Errorw("Silicon Flow API请求失败", "error", err)
 		return true, err
 	}
 
