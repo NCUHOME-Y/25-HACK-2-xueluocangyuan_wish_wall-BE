@@ -35,27 +35,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		api.GET("/app-state", handler.GetAppState)
 
 		api.POST("/test-ai", func(c *gin.Context) {
-			var req struct {
-				Content string `json:"content"`
-			}
-			if err := c.ShouldBindJSON(&req); err != nil {
-				c.JSON(200, gin.H{"error": "gimme json: {\"content\": \"...\"}"})
-				return
-			}
-
-			// 调用 content moderation 服务（如果配置了 OPENAI_API_KEY，会请求 OpenAI Moderation API；
-			// 否则使用本地回退规则）
-			isViolating, aiErr := service.CheckContent(req.Content)
-			if aiErr != nil {
-				// 返回错误信息以便在 apifox 中调试
-				c.JSON(200, gin.H{"error": aiErr.Error()})
-				return
-			}
-
-			c.JSON(200, gin.H{
-				"input_content": req.Content,
-				"is_violating":  isViolating,
-			})
+			handler.TestAI(c, db)
 		})
 		/*
 			// 愿望墙 (公开)
