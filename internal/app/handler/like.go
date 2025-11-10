@@ -36,7 +36,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("CreateLike: 参数绑定失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "请求参数错误",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": err.Error()},
 		})
 		return
@@ -46,7 +46,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "未登录或 token 无效",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -59,7 +59,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "愿望不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -67,7 +67,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("CreateLike: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -100,7 +100,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("CreateLike: 查询现有点赞失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -125,7 +125,7 @@ func CreateLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("CreateLike: 事务失败，创建点赞失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "点赞失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -161,7 +161,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 	if idStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "缺少 like id",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -171,7 +171,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("DeleteLike: id 解析失败", "id", idStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "like id 无效",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -182,7 +182,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "未登录或 token 无效",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -194,7 +194,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "点赞记录不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -202,7 +202,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("DeleteLike: 查询 like 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -215,7 +215,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 			logger.Log.Errorw("DeleteLike: 查询用户失败", "error", err, "userID", userID)
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": "权限校验失败",
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{},
 			})
 			return
@@ -223,7 +223,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 		if user.Role != "admin" {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "没有权限删除该点赞",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -244,7 +244,7 @@ func DeleteLike(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("DeleteLike: 事务删除失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "取消点赞失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -264,7 +264,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 	if wishIDStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "缺少 wishId",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -274,7 +274,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("ListLikesByWish: wishId 解析失败", "wishId", wishIDStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "wishId 无效",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -302,7 +302,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "愿望不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -310,7 +310,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListLikesByWish: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -321,7 +321,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListLikesByWish: 计数失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -337,7 +337,7 @@ func ListLikesByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListLikesByWish: 查询 likes 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "查询失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
