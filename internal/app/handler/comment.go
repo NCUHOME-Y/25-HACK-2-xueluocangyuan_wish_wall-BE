@@ -10,7 +10,6 @@ import (
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // CreateCommentRequest 前端发起新评论的请求结构
@@ -452,7 +451,6 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 	comment.UpdatedAt = time.Now()
 
 	if err := db.Model(&model.Comment{}).Where("id = ?", comment.ID).
-		Select(clause.Associations).
 		Updates(map[string]interface{}{"content": comment.Content, "updated_at": comment.UpdatedAt}).Error; err != nil {
 		logger.Log.Errorw("UpdateComment: 更新评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
