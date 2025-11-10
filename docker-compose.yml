@@ -1,26 +1,29 @@
-version: "3.8"
 
-#定义所有的服务
 services:
-
-#go的后端服务
-  qpp:
- #'build: .'告诉docker-compose去当前目录下寻找Dockerfile来构建镜像
-    build: .
-    #端口映射，把容器的8080端口映射到宿主机的8080端口
+  # Nginx 反向代理
+  nginx:
+    build: ./nginx
     ports:
-    - "8080:8080"  
-    #环境变量，从.env文件中读取
-    env_file:
-    - .env  
-    #依赖数据库服务，确保数据库服务先启动
+      - "80:80"
     depends_on:
-    - db
-    #把app加入到wish-network网络中
+      - qpp
     networks:
       - wish-network
 
-#数据库服务，使用官方的MySQL镜像
+  # Go 应用（qpp）
+  qpp:
+    build: .
+    # 如果你希望 qpp 对外暴露端口，可以取消下面注释
+    # ports:
+    #   - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - wish-network
+
+  # 数据库服务（MySQL）
   db:
     image: mysql:8.0
     restart: unless-stopped
@@ -28,19 +31,18 @@ services:
       - "3307:3306"
     env_file:
       - .env
-    networks:  # 可恶的缩进
+    networks:
       - wish-network
-    volumes:   
+    volumes:
       - db_data:/var/lib/mysql
-#定义网络
+
 networks:
   wish-network:
-    driver: bridge # 使用桥接网络
-#定义数据卷
+    driver: bridge
+
 volumes:
   db_data:
-
-    driver: local # 使用本地卷
+    driver: local
 
 
 
