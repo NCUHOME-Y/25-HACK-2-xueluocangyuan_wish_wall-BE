@@ -136,7 +136,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "评论创建成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    resp,
 	})
 }
@@ -239,7 +239,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "删除评论成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    gin.H{},
 	})
 }
@@ -350,7 +350,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "获取评论列表成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data": gin.H{
 			"total":    total,
 			"page":     page,
@@ -481,7 +481,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "更新评论成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    resp,
 	})
 }
