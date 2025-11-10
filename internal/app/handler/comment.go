@@ -57,7 +57,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	userID, ok := c.Get("userID")
+	userIDi, ok := c.Get("userID")
 	if !ok {
 		logger.Log.Warn("CreateComment: 未找到 userID 上下文")
 		c.JSON(http.StatusOK, gin.H{
@@ -67,6 +67,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		})
 		return
 	}
+	userID := userIDi.(uint)
 
 	// 校验愿望是否存在
 	var wish model.Wish
@@ -91,10 +92,10 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 
 	// 创建评论（使用事务，确保 comment_count 与 comment 保持一致）
 	var comment model.Comment
-	err := db.Transaction(func(tx *gorm.DB) error {
+	if err := db.Transaction(func(tx *gorm.DB) error {
 		comment = model.Comment{
 			WishID:  req.WishID,
-			UserID:  userID.(uint),
+			UserID:  userID,
 			Content: req.Content,
 		}
 		if err := tx.Create(&comment).Error; err != nil {
@@ -105,8 +106,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 			return err
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		logger.Log.Errorw("CreateComment: 创建评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
@@ -116,11 +116,10 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 预加载用户简要信息
-	var user model.User
-	if err := db.First(&user, comment.UserID).Error; err != nil {
-		// 即使查询用户失败，评论已创建，仍然返回基本信息
-		logger.Log.Warnw("CreateComment: 查询用户信息失败", "error", err, "userID", comment.UserID)
+	// 为避免“幽灵用户”，在事务成功后重新查询并预加载 User
+	if err := db.Preload("User").First(&comment, comment.ID).Error; err != nil {
+		// 预加载失败不是致命错误，但要记录日志
+		logger.Log.Warnw("CreateComment: 重新查询评论并预加载用户失败，可能返回无用户信息", "error", err, "commentID", comment.ID)
 	}
 
 	resp := CommentResponse{
@@ -130,9 +129,9 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		Content:   comment.Content,
 		CreatedAt: comment.CreatedAt,
 		User: UserShort{
-			ID:       user.ID,
-			Nickname: user.Nickname,
-			AvatarID: user.AvatarID,
+			ID:       comment.User.ID,
+			Nickname: comment.User.Nickname,
+			AvatarID: comment.User.AvatarID,
 		},
 	}
 
@@ -464,9 +463,10 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 返回更新后的评论（包含用户简要信息）
-	var user model.User
-	_ = db.First(&user, comment.UserID).Error // 忽略可能的错误，非致命
+	// 为避免“幽灵用户”，在更新成功后重新查询并预加载 User
+	if err := db.Preload("User").First(&comment, comment.ID).Error; err != nil {
+		logger.Log.Warnw("UpdateComment: 重新查询评论并预加载用户失败，可能返回无用户信息", "error", err, "commentID", comment.ID)
+	}
 
 	resp := CommentResponse{
 		ID:        comment.ID,
@@ -475,9 +475,9 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		Content:   comment.Content,
 		CreatedAt: comment.CreatedAt,
 		User: UserShort{
-			ID:       user.ID,
-			Nickname: user.Nickname,
-			AvatarID: user.AvatarID,
+			ID:       comment.User.ID,
+			Nickname: comment.User.Nickname,
+			AvatarID: comment.User.AvatarID,
 		},
 	}
 
