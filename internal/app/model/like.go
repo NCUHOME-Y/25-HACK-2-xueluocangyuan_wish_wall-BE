@@ -1,22 +1,26 @@
-package handler
+package model
 
 import (
-	"net/http"
+	"time"
 
-	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
-	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-// RespondLike sends a standardized JSON response for like operations.
-// Format: { code: number, message: string, data: { likeCount: number, liked: boolean, wishId: number } }
-func RespondLike(c *gin.Context, likeCount int, liked bool, wishID uint) {
-	c.JSON(http.StatusOK, gin.H{
-		"code":    apperr.SUCCESS,
-		"message": apperr.GetMsg(apperr.SUCCESS),
-		"data": gin.H{
-			"likeCount": likeCount,
-			"liked":     liked,
-			"wishId":    wishID,
-		},
-	})
+// Like represents a like on a wish.
+type Like struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	WishID    uint           `gorm:"not null;uniqueIndex:idx_user_wish" json:"wishId"`
+	UserID    uint           `gorm:"not null;uniqueIndex:idx_user_wish" json:"userId"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	// 关联关系
+	User User `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Wish Wish `gorm:"foreignKey:WishID" json:"wish,omitempty"`
+}
+
+// TableName 指定表名
+func (Like) TableName() string {
+	return "likes"
 }
