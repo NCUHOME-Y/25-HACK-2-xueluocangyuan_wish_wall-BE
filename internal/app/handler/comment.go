@@ -51,7 +51,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("CreateComment: 参数绑定失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "请求参数错误",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": err.Error()},
 		})
 		return
@@ -62,7 +62,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warn("CreateComment: 未找到 userID 上下文")
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "未登录或 token 无效",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -75,7 +75,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 			logger.Log.Infow("CreateComment: wish 未找到", "wishId", req.WishID)
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "愿望不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -83,7 +83,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("CreateComment: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -110,7 +110,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("CreateComment: 创建评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "创建评论失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -149,7 +149,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	if idStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "缺少评论 id",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -159,7 +159,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("DeleteComment: id 解析失败", "id", idStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "评论 id 无效",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -170,7 +170,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "未登录或 token 无效",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -183,7 +183,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "评论不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -191,7 +191,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("DeleteComment: 查询评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -204,7 +204,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 			logger.Log.Errorw("DeleteComment: 查询用户失败", "error", err, "userID", userID)
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": "权限校验失败",
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{},
 			})
 			return
@@ -212,7 +212,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		if user.Role != "admin" {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "没有权限删除该评论",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -233,7 +233,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("DeleteComment: 删除评论事务失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "删除评论失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -253,7 +253,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 	if wishIDStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "缺少 wishId",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -263,7 +263,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("ListCommentsByWish: wishId 解析失败", "wishId", wishIDStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "wishId 无效",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -291,7 +291,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "愿望不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -299,7 +299,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListCommentsByWish: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -312,7 +312,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListCommentsByWish: 计数失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -328,7 +328,7 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("ListCommentsByWish: 查询评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "查询评论失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -368,7 +368,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 	if idStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "缺少评论 id",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -378,7 +378,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("UpdateComment: id 解析失败", "id", idStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "评论 id 无效",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{},
 		})
 		return
@@ -390,7 +390,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("UpdateComment: 参数绑定失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "请求参数错误",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": err.Error()},
 		})
 		return
@@ -400,7 +400,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "未登录或 token 无效",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -412,7 +412,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "评论不存在",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -420,7 +420,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("UpdateComment: 查询评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -433,7 +433,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 			logger.Log.Errorw("UpdateComment: 查询用户失败", "error", err, "userID", userID)
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": "权限校验失败",
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{},
 			})
 			return
@@ -441,7 +441,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		if user.Role != "admin" {
 			c.JSON(http.StatusOK, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": "没有权限编辑该评论",
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 				"data":    gin.H{},
 			})
 			return
@@ -458,7 +458,7 @@ func UpdateComment(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("UpdateComment: 更新评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "更新评论失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
