@@ -54,9 +54,20 @@ func CreateWish(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 3. AI 内容审核（在保存前调用）
-	if err := service.CheckContent(req.Content); err != nil {
-		// 如果审核返回明确拒绝，向客户端返回友好信息
-		logger.Log.Warnw("创建愿望被拒绝：内容未通过审核", "userID", userID, "error", err)
+	isViolating, aiErr := service.CheckContent(req.Content)
+	if aiErr != nil {
+		// 审核过程中出现明确错误（如内容为空/过长，或 AI 无法判断等），把错误信息返回给客户端
+		logger.Log.Warnw("创建愿望被拒绝：内容审核出错或无法判断", "userID", userID, "error", aiErr)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": aiErr.Error()},
+		})
+		return
+	}
+	if isViolating {
+		// AI 明确判定为不安全内容
+		logger.Log.Infow("创建愿望被拒绝：AI 判定不安全", "userID", userID)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
 			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
