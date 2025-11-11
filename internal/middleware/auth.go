@@ -50,7 +50,7 @@ func LoggerMiddleware() gin.HandlerFunc {
 func RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// (使用 'apperr' 作为别名)
-		defer func() {// 捕获 Panic
+		defer func() { // 捕获 Panic
 			if r := recover(); r != nil {
 				logger.Log.Errorw("服务器崩溃 (Panic)", "error", r)
 

@@ -1,15 +1,10 @@
 # Wish Wall 后端服务 (25-HACK-2-xueluocangyuan_wish_wall-BE) 🚀
 2025 Hackweek 第2组  代码别和我作队 雪落藏愿许愿墙  后端仓库
 
-
-# 🚀 Wish Wall 后端服务 (25-HACK-2-xueluocangyuan_wish_wall-BE) 🚀
-2025 Hackweek 第2组  代码别和我作队 雪落藏愿许愿墙  后端仓库
-
 一个基于 Go + Gin + GORM 的许愿墙与社交互动平台后端服务。
 
 ## 目录
 - [Wish Wall 后端服务 (25-HACK-2-xueluocangyuan\_wish\_wall-BE) 🚀](#wish-wall-后端服务-25-hack-2-xueluocangyuan_wish_wall-be-)
-- [🚀 Wish Wall 后端服务 (25-HACK-2-xueluocangyuan\_wish\_wall-BE) 🚀](#-wish-wall-后端服务-25-hack-2-xueluocangyuan_wish_wall-be-)
   - [目录](#目录)
   - [📝 项目简介](#-项目简介)
   - [📁 文件目录说明](#-文件目录说明)

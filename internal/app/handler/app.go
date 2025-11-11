@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err" //诶诶还有命名冲突
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
-	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +19,7 @@ func GetAppState(c *gin.Context) {
 	if activeActivity == "" {
 		logger.Log.Error("获取应用状态失败：环境变量 ACTIVE_ACTIVITY 未设置")
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR, // 标准错误码是10004
+			"code":    apperr.ERROR_SERVER_ERROR, // 标准错误码是10
 			"message": "服务器配置错误，请联系管理员",
 			"data":    gin.H{},
 		})

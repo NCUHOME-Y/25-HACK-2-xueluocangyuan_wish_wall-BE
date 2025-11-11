@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
+	service "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -18,10 +19,7 @@ type CreateCommentRequest struct {
 	Content string `json:"content" binding:"required"`
 }
 
-// UpdateCommentRequest 编辑评论请求结构
-type UpdateCommentRequest struct {
-	Content string `json:"content" binding:"required"`
-}
+// (UpdateCommentRequest 结构体已被删除)
 
 // UserShort 用于在评论返回中携带简单用户信息
 type UserShort struct {
@@ -82,9 +80,42 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		}
 		logger.Log.Errorw("CreateComment: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"code":    apperr.ERROR_WISH_NOT_FOUND,               
+			"message": apperr.GetMsg(apperr.ERROR_WISH_NOT_FOUND),
 			"data":    gin.H{},
+		})
+		return
+	}
+
+	// 检查是否允许评论
+if !wish.IsPublic && wish.UserID != userID {
+    logger.Log.Infow("CreateComment: 评论被拒绝，尝试评论私有愿望", "wishId", req.WishID, "userID", userID)
+    c.JSON(http.StatusOK, gin.H{
+        "code":    apperr.ERROR_FORBIDDEN_COMMENT, // <-- 对应 code 13
+        "message": apperr.GetMsg(apperr.ERROR_FORBIDDEN_COMMENT),
+        "data":    gin.H{},
+    })
+    return
+}
+
+	isViolating, aiErr := service.CheckContent(req.Content)
+	if aiErr != nil {
+		// AI 服务本身出错（如内容为空/过长 或无法判断）
+		logger.Log.Warnw("创建评论被拒绝：内容审核出错", "userID", userID, "error", aiErr)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": aiErr.Error()},
+		})
+		return
+	}
+	if isViolating {
+		// AI 明确判定为不安全内容
+		logger.Log.Infow("创建评论被拒绝:AI 判定不安全", "userID", userID)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "内容未通过审核"},
 		})
 		return
 	}
@@ -108,8 +139,8 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 	}); err != nil {
 		logger.Log.Errorw("CreateComment: 创建评论失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"code":    apperr.ERROR_COMMENT_FAILED,
+			"message": apperr.GetMsg(apperr.ERROR_COMMENT_FAILED),
 			"data":    gin.H{},
 		})
 		return
@@ -141,7 +172,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 	})
 }
 
-// DeleteComment 删除评论：仅作者或管理员可删除
+// DeleteComment 删除评论：仅作者或管理员或评论人可删除
 func DeleteComment(c *gin.Context, db *gorm.DB) {
 	idStr := c.Param("id")
 	if idStr == "" {
@@ -156,8 +187,8 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	if err != nil {
 		logger.Log.Warnw("DeleteComment: id 解析失败", "id", idStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"code":    apperr.ERROR_COMMENT_NOT_FOUND, 
+			"message": apperr.GetMsg(apperr.ERROR_COMMENT_NOT_FOUND), 
 			"data":    gin.H{},
 		})
 		return
@@ -360,128 +391,4 @@ func ListCommentsByWish(c *gin.Context, db *gorm.DB) {
 	})
 }
 
-// UpdateComment 编辑评论：仅作者或管理员可以编辑
-func UpdateComment(c *gin.Context, db *gorm.DB) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data":    gin.H{},
-		})
-		return
-	}
-	idUint64, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		logger.Log.Warnw("UpdateComment: id 解析失败", "id", idStr, "error", err)
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data":    gin.H{},
-		})
-		return
-	}
-	commentID := uint(idUint64)
-
-	var req UpdateCommentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Log.Warnw("UpdateComment: 参数绑定失败", "error", err)
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data":    gin.H{"error": err.Error()},
-		})
-		return
-	}
-
-	userIDi, ok := c.Get("userID")
-	if !ok {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
-			"data":    gin.H{},
-		})
-		return
-	}
-	userID := userIDi.(uint)
-
-	var comment model.Comment
-	if err := db.First(&comment, commentID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-				"data":    gin.H{},
-			})
-			return
-		}
-		logger.Log.Errorw("UpdateComment: 查询评论失败", "error", err)
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
-			"data":    gin.H{},
-		})
-		return
-	}
-
-	// 权限校验
-	if comment.UserID != userID {
-		var user model.User
-		if err := db.First(&user, userID).Error; err != nil {
-			logger.Log.Errorw("UpdateComment: 查询用户失败", "error", err, "userID", userID)
-			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
-				"data":    gin.H{},
-			})
-			return
-		}
-		if user.Role != "admin" {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-				"data":    gin.H{},
-			})
-			return
-		}
-	}
-
-	// 更新内容（只更新 content 与 updated_at）
-	comment.Content = req.Content
-	comment.UpdatedAt = time.Now()
-
-	if err := db.Model(&model.Comment{}).Where("id = ?", comment.ID).
-		Updates(map[string]interface{}{"content": comment.Content, "updated_at": comment.UpdatedAt}).Error; err != nil {
-		logger.Log.Errorw("UpdateComment: 更新评论失败", "error", err)
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
-			"data":    gin.H{},
-		})
-		return
-	}
-
-	// 为避免“幽灵用户”，在更新成功后重新查询并预加载 User
-	if err := db.Preload("User").First(&comment, comment.ID).Error; err != nil {
-		logger.Log.Warnw("UpdateComment: 重新查询评论并预加载用户失败，可能返回无用户信息", "error", err, "commentID", comment.ID)
-	}
-
-	resp := CommentResponse{
-		ID:        comment.ID,
-		WishID:    comment.WishID,
-		UserID:    comment.UserID,
-		Content:   comment.Content,
-		CreatedAt: comment.CreatedAt,
-		User: UserShort{
-			ID:       comment.User.ID,
-			Nickname: comment.User.Nickname,
-			AvatarID: comment.User.AvatarID,
-		},
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code":    apperr.SUCCESS,
-		"message": apperr.GetMsg(apperr.SUCCESS),
-		"data":    resp,
-	})
-}
+// (UpdateComment 函数已被删除)

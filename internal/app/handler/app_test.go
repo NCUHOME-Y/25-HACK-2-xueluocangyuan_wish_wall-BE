@@ -2,17 +2,16 @@ package handler_test
 
 import (
 	"bytes"
-	
+
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
-	
+
 	"github.com/stretchr/testify/assert"
 )
-
 
 // TestGetAppState 测试获取应用状态
 func TestGetAppState(t *testing.T) {

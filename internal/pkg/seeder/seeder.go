@@ -49,13 +49,13 @@ func SeedData(db *gorm.DB) {
 		"希望能多读几本好书", "希望能改善人际关系", "希望能提升自己的厨艺",
 		"好想早点回家", "小学生愿望成真",
 	}
-	
+
 	var fakeWishes []model.Wish
 	for i := 0; i < 55; i++ {
 		fakeWishes = append(fakeWishes, model.Wish{
-			UserID:     bots[i%len(bots)].ID,
-			Content:    wishContents[i%len(wishContents)],
-			IsPublic:   true,
+			UserID:   bots[i%len(bots)].ID,
+			Content:  wishContents[i%len(wishContents)],
+			IsPublic: true,
 		})
 	}
 	if err := db.Create(&fakeWishes).Error; err != nil {

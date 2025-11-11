@@ -128,8 +128,8 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 		}
 		logger.Log.Errorw("点赞事务失败", "wishID", wishID, "userID", userID, "error", txErr)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"code":    apperr.ERROR_LIKE_FAILED,             
+			"message": apperr.GetMsg(apperr.ERROR_LIKE_FAILED), 
 			"data":    gin.H{},
 		})
 		return
