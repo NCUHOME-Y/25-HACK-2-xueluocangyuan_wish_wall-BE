@@ -1,7 +1,3 @@
-# Wish Wall 后端服务 (25-HACK-2-xueluocangyuan_wish_wall-BE) 🚀
-2025 Hackweek 第2组  代码别和我作队 雪落藏愿许愿墙  后端仓库
-
-
 # 🚀 Wish Wall 后端服务 (25-HACK-2-xueluocangyuan_wish_wall-BE) 🚀
 2025 Hackweek 第2组  代码别和我作队 雪落藏愿许愿墙  后端仓库
 
