@@ -48,7 +48,12 @@ func CheckContent(content string) (isViolating bool, err error) {
 	}
 
 	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = "https://api.siliconflow.cn/v1"
+	// Allow overriding the base URL for testing (e.g., mock server)
+	baseURL := os.Getenv("SILICONFLOW_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.siliconflow.cn/v1"
+	}
+	config.BaseURL = baseURL
 
 	client := openai.NewClientWithConfig(config)
 

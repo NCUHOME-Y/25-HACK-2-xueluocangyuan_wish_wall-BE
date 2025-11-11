@@ -93,9 +93,9 @@ func Register(c *gin.Context, db *gorm.DB) {
 	if hashErr != nil {
 		logger.Log.Errorw("注册时密码加密失败", "error", hashErr)
 		c.JSON(http.StatusOK, gin.H{
-			"code":   apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"message": "服务器内部错误",
-			"data":   gin.H{},
+			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"data":    gin.H{},
 		})
 		return
 	}
@@ -113,7 +113,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("创建用户到数据库失败", "error", createErr)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"message": "注册失败，请稍后重试",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -127,7 +127,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("注册成功但生成 Token 失败", "error", tokenErr)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR, // 我们的标准 code: 10
-			"message": "注册成功，但登录失败",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -146,7 +146,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS, // 200
-		"message": "注册成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data": gin.H{
 			"token": token,
 			"user":  responseUser,
@@ -181,7 +181,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_LOGIN_FAILED,
-			"message": "fail",
+			"message": apperr.GetMsg(apperr.ERROR_LOGIN_FAILED),
 			"data":    gin.H{"error": "用户名或密码错误"},
 		})
 		return
@@ -193,7 +193,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		logger.Log.Infow("登录失败。密码错误", "username", req.Username)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_LOGIN_FAILED,
-			"message": "fail",
+			"message": apperr.GetMsg(apperr.ERROR_LOGIN_FAILED),
 			"data":    gin.H{"error": "用户名或密码错误"},
 		})
 		return
@@ -204,7 +204,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("登陆成功但生成Token失败", "error", tokenErr)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -222,7 +222,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "登录成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    gin.H{"token": token, "user": respondUser},
 	})
 }
@@ -237,7 +237,7 @@ func GetUserMe(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("GetUserMe: 查询用户失败", "userID", userID)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "用户不存在或已注销",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -255,7 +255,7 @@ func GetUserMe(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "获取用户信息成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    responseUser,
 	})
 }
@@ -267,7 +267,7 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 		logger.Log.Warnw("更新用户请求参数绑定失败", "error", err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": "请检查输入的内容",
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": err.Error()},
 		})
 		return
@@ -280,7 +280,7 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("UpdateUser: 查询用户失败", "userID", userID)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_UNAUTHORIZED,
-			"message": "用户不存在或已注销",
+			"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 			"data":    gin.H{},
 		})
 		return
@@ -297,7 +297,7 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 		logger.Log.Errorw("UpdateUser: 更新用户信息失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": "服务器内部错误",
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
 		return
@@ -313,7 +313,7 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "更新用户信息成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data":    responseUser,
 	})
 }

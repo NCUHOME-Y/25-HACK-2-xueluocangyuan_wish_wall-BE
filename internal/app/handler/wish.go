@@ -137,5 +137,17 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 
 	// 5. 成功返回
 	RespondLike(c, finalLikeCount, finalLiked, wishID)
-	// 方案1：检查函数是否存在
+}
+
+// RespondLike 返回点赞/取消点赞的标准响应
+func RespondLike(c *gin.Context, likeCount int, liked bool, wishID uint) {
+	c.JSON(http.StatusOK, gin.H{
+		"code":    apperr.SUCCESS,
+		"message": apperr.GetMsg(apperr.SUCCESS),
+		"data": gin.H{
+			"wishID":    wishID,
+			"likeCount": likeCount,
+			"liked":     liked,
+		},
+	})
 }

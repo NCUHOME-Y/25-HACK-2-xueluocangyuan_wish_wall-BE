@@ -29,7 +29,7 @@ func GetAppState(c *gin.Context) {
 	// 返回当前应用状态
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
-		"message": "获取应用状态成功",
+		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data": gin.H{
 			"activeActivity": activeActivity, //v2
 		},
