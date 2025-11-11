@@ -50,7 +50,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			api.POST("/register", func(c *gin.Context) { handler.Register(c, db) })
 			api.GET("/wishes/public", func(c *gin.Context) { handler.GetPublicWishes(c, db) })
 
-			// V1 受保护路由 
+			// V1 受保护路由
 			{
 				// 更新用户信息 (V1 允许)
 				auth.PUT("/user", func(c *gin.Context) { handler.UpdateUser(c, db) })

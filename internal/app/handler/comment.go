@@ -80,7 +80,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		}
 		logger.Log.Errorw("CreateComment: 查询 wish 失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_WISH_NOT_FOUND,               
+			"code":    apperr.ERROR_WISH_NOT_FOUND,
 			"message": apperr.GetMsg(apperr.ERROR_WISH_NOT_FOUND),
 			"data":    gin.H{},
 		})
@@ -88,15 +88,15 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 检查是否允许评论
-if !wish.IsPublic && wish.UserID != userID {
-    logger.Log.Infow("CreateComment: 评论被拒绝，尝试评论私有愿望", "wishId", req.WishID, "userID", userID)
-    c.JSON(http.StatusOK, gin.H{
-        "code":    apperr.ERROR_FORBIDDEN_COMMENT, // <-- 对应 code 13
-        "message": apperr.GetMsg(apperr.ERROR_FORBIDDEN_COMMENT),
-        "data":    gin.H{},
-    })
-    return
-}
+	if !wish.IsPublic && wish.UserID != userID {
+		logger.Log.Infow("CreateComment: 评论被拒绝，尝试评论私有愿望", "wishId", req.WishID, "userID", userID)
+		c.JSON(http.StatusOK, gin.H{
+			"code":    apperr.ERROR_FORBIDDEN_COMMENT, // <-- 对应 code 13
+			"message": apperr.GetMsg(apperr.ERROR_FORBIDDEN_COMMENT),
+			"data":    gin.H{},
+		})
+		return
+	}
 
 	isViolating, aiErr := service.CheckContent(req.Content)
 	if aiErr != nil {
@@ -171,15 +171,14 @@ if !wish.IsPublic && wish.UserID != userID {
 		"data":    resp,
 	})
 }
-
-// DeleteComment 删除评论：仅作者或管理员或评论人可删除
+// DeleteComment 删除评论：仅 评论作者、心愿主人 或 管理员 可删除
 func DeleteComment(c *gin.Context, db *gorm.DB) {
 	idStr := c.Param("id")
 	if idStr == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
 			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data":    gin.H{},
+			"data":    gin.H{"error": "缺少评论ID"},
 		})
 		return
 	}
@@ -187,9 +186,9 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	if err != nil {
 		logger.Log.Warnw("DeleteComment: id 解析失败", "id", idStr, "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_COMMENT_NOT_FOUND, 
-			"message": apperr.GetMsg(apperr.ERROR_COMMENT_NOT_FOUND), 
-			"data":    gin.H{},
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "评论ID格式无效"},
 		})
 		return
 	}
@@ -210,9 +209,10 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	var comment model.Comment
 	if err := db.First(&comment, commentID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
+			// 使用 code 14
 			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+				"code":    apperr.ERROR_COMMENT_NOT_FOUND,
+				"message": apperr.GetMsg(apperr.ERROR_COMMENT_NOT_FOUND),
 				"data":    gin.H{},
 			})
 			return
@@ -225,29 +225,52 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 		})
 		return
 	}
-
-	// 如果不是作者，需要判断是否为管理员
-	if comment.UserID != userID {
-		var user model.User
-		if err := db.First(&user, userID).Error; err != nil {
-			logger.Log.Errorw("DeleteComment: 查询用户失败", "error", err, "userID", userID)
+	
+	// 检查 1: 是否为评论作者
+	if comment.UserID == userID {
+		// 是评论作者，允许删除
+	} else {
+		// 检查 2: 是否为心愿主人
+		var wish model.Wish
+		if err := db.First(&wish, comment.WishID).Error; err != nil {
+			logger.Log.Errorw("DeleteComment: 无法找到评论所属的愿望", "error", err, "wishID", comment.WishID)
 			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_UNAUTHORIZED,
-				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
+				"code":    apperr.ERROR_SERVER_ERROR,
+				"message": "数据关联错误", // 这是一个服务器内部错误
 				"data":    gin.H{},
 			})
 			return
 		}
-		if user.Role != "admin" {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    apperr.ERROR_PARAM_INVALID,
-				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-				"data":    gin.H{},
-			})
-			return
+
+		if wish.UserID == userID {
+			// 是心愿主人，允许删除
+		} else {
+			// 检查 3: 是否为管理员
+			var currentUser model.User
+			if err := db.First(&currentUser, userID).Error; err != nil {
+				logger.Log.Errorw("DeleteComment: 查询当前用户信息失败", "error", err, "userID", userID)
+				c.JSON(http.StatusOK, gin.H{
+					"code":    apperr.ERROR_UNAUTHORIZED, // 无法验证用户身份
+					"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
+					"data":    gin.H{},
+				})
+				return
+			}
+			
+			if currentUser.Role == "admin" {
+				// 是管理员，允许删除
+			} else {
+				// 最终: 三者都不是，禁止删除
+				c.JSON(http.StatusOK, gin.H{
+					"code":    apperr.ERROR_FORBIDDEN_DELETE, // <-- 对应 code 2
+					"message": apperr.GetMsg(apperr.ERROR_FORBIDDEN_DELETE),
+					"data":    gin.H{},
+				})
+				return
+			}
 		}
 	}
-
+	
 	// 删除并减少 wish.comment_count（事务）
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Delete(&comment).Error; err != nil {
@@ -261,7 +284,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	}); err != nil {
 		logger.Log.Errorw("DeleteComment: 删除评论事务失败", "error", err)
 		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
+			"code":    apperr.ERROR_SERVER_ERROR, 
 			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},
 		})
@@ -271,7 +294,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
 		"message": apperr.GetMsg(apperr.SUCCESS),
-		"data":    gin.H{},
+		"data":    gin.H{"deletedCommentId": commentID}, 
 	})
 }
 
