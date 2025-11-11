@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	
 	"os"
 	"testing"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/router"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -25,8 +25,16 @@ func TestMain(m *testing.M) {
 	// 初始化日志系统
 	logger.InitLogger()
 
+	// internal/app/handler 目录，.env 在三层目录之上
+	if err := godotenv.Load("../../../.env"); err != nil {
+		logger.Log.Fatalf("加载 .env 文件失败 : %v", err)
+	}
+
 	//连接测试数据库
-	dsn := "root:Missyousomuch0@tcp(127.0.1:3307)/wish_wall_test?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := os.Getenv("MYSQL_TEST_DSN")
+	if dsn == "" {
+		logger.Log.Fatalf("MYSQL_TEST_DSN 环境变量未设置，请检查 .env 文件")
+	}
 	var err error
 	testDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -46,6 +54,7 @@ func TestMain(m *testing.M) {
 	}
 
 	//设置测试路由
+	// 因为 .env 已加载, os.Getenv("ACTIVE_ACTIVITY") 现在可以读到 "v1" 了
 	testRouter = router.SetupRouter(testDB)
 
 	//运行测试
