@@ -54,15 +54,36 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 
 	// count total distinct wishes matching query
 	var total int64
-	// when join used, ensure distinct count on wishes.id
-	if err := baseQuery.Distinct("wishes.id").Count(&total).Error; err != nil {
-		logger.Log.Errorw("获取公共愿望墙失败：统计总数出错", "tag", tag, "error", err)
-		c.JSON(http.StatusOK, gin.H{
-			"code":    apperr.ERROR_SERVER_ERROR,
-			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
-			"data":    gin.H{},
-		})
-		return
+	// Use a subquery to count distinct wish IDs for better performance
+	if tag != "" {
+		// Subquery: select distinct wish IDs matching the tag
+		var count int64
+		subQuery := db.Model(&model.Wish{}).
+			Select("wishes.id").
+			Joins("JOIN wish_tags wt ON wt.wish_id = wishes.id AND wt.tag_name = ?", tag).
+			Where("is_public = ?", true).
+			Group("wishes.id")
+		if err := db.Table("(?) as sub", subQuery).Count(&count).Error; err != nil {
+			logger.Log.Errorw("获取公共愿望墙失败：统计总数出错", "tag", tag, "error", err)
+			c.JSON(http.StatusOK, gin.H{
+				"code":    apperr.ERROR_SERVER_ERROR,
+				"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+				"data":    gin.H{},
+			})
+			return
+		}
+		total = count
+	} else {
+		// No tag filter, just count public wishes
+		if err := db.Model(&model.Wish{}).Where("is_public = ?", true).Count(&total).Error; err != nil {
+			logger.Log.Errorw("获取公共愿望墙失败：统计总数出错", "tag", tag, "error", err)
+			c.JSON(http.StatusOK, gin.H{
+				"code":    apperr.ERROR_SERVER_ERROR,
+				"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+				"data":    gin.H{},
+			})
+			return
+		}
 	}
 
 	// query wishes with ordering and pagination
