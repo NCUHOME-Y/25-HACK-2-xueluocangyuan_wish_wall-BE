@@ -45,7 +45,7 @@ func GetInteractions(c *gin.Context, db *gorm.DB) {
 
 	// 3. 加载愿望基本信息
 	var wish model.Wish
-	if err := db.Select("id, content, user_id, is_public, like_count, comment_count").First(&wish, wishID).Error; err != nil {
+	if err := db.First(&wish, wishID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Log.Warnw("获取互动信息失败：愿望不存在", "wishID", wishID)
 			c.JSON(http.StatusOK, gin.H{
