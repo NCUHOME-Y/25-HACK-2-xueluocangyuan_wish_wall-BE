@@ -24,7 +24,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
 		logger.Log.Warnw("获取公共愿望墙失败：页码无效", "page", pageStr, "error", err)
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
 			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": "页码无效"},
@@ -34,7 +34,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil || pageSize < 1 || pageSize > 100 {
 		logger.Log.Warnw("获取公共愿望墙失败：分页大小无效", "pageSize", pageSizeStr, "error", err)
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
 			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": "分页大小无效"},
@@ -65,7 +65,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 			Group("wishes.id")
 		if err := db.Table("(?) as sub", subQuery).Count(&count).Error; err != nil {
 			logger.Log.Errorw("获取公共愿望墙失败：统计总数出错", "tag", tag, "error", err)
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    apperr.ERROR_SERVER_ERROR,
 				"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 				"data":    gin.H{},
@@ -77,7 +77,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 		// No tag filter, just count public wishes
 		if err := db.Model(&model.Wish{}).Where("is_public = ?", true).Count(&total).Error; err != nil {
 			logger.Log.Errorw("获取公共愿望墙失败：统计总数出错", "tag", tag, "error", err)
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    apperr.ERROR_SERVER_ERROR,
 				"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 				"data":    gin.H{},
@@ -95,7 +95,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 		Limit(pageSize).
 		Find(&wishes).Error; err != nil {
 		logger.Log.Errorw("获取公共愿望墙失败：查询愿望出错", "tag", tag, "error", err)
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
 			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
 			"data":    gin.H{},

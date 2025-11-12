@@ -13,9 +13,8 @@ services:
   # Go 应用（qpp）
   qpp:
     build: .
-    # 如果你希望 qpp 对外暴露端口，可以取消下面注释
-    # ports:
-    #   - "8080:8080"
+    ports:   
+       - "8080:8080"
     env_file:
       - .env
     depends_on:

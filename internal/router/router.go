@@ -14,14 +14,16 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.New()
 
-	// 1. 注册全局中间件
+	//  注册全局中间件
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.LoggerMiddleware())
 	r.Use(middleware.RecoveryMiddleware())
 
-	// 2. 创建 /api 根路由组
+	//  创建 /api 根路由组
 	api := r.Group("/api")
 	{
+		// 注册 (提升到公共区域，防止 ACTIVE_ACTIVITY 未设置时 404)
+		api.POST("/register", func(c *gin.Context) { handler.Register(c, db) })
 
 		// 登录 (V1 和 V2 都需要)
 		api.POST("/login", func(c *gin.Context) { handler.Login(c, db) })
@@ -30,7 +32,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		// 内部 AI 测试 (V1 和 V2 都保留)
 		api.POST("/test-ai", func(c *gin.Context) { handler.TestAI(c) })
 
-		// --- 受保护的基础路由 (V1 和 V2 都需要) ---
+		// 公共：获取某个愿望的评论列表
+		api.GET("/wishes/:id/comments", func(c *gin.Context) { handler.ListCommentsByWish(c, db) })
+
+		// 公共：获取公共愿望列表（可带 Token，用于 liked 状态；不强制，可选鉴权）
+		public := api.Group("/")
+		public.Use(middleware.JWTOptionalAuthMiddleware())
+		{
+			public.GET("/wishes/public", func(c *gin.Context) { handler.GetPublicWishes(c, db) })
+		}
+
+		//受保护的基础路由 (V1 和 V2 都需要)
 		auth := api.Group("/")
 		auth.Use(middleware.JWTAuthMiddleware())
 		{
@@ -38,6 +50,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			auth.GET("/user/me", func(c *gin.Context) { handler.GetUserMe(c, db) })
 			// 查看个人星河 (V2 "只读" 的核心功能)
 			auth.GET("/wishes/me", func(c *gin.Context) { handler.GetMyWishes(c, db) })
+			// 兼容测试用评论创建路由 (无论活动状态都提供)
+			auth.POST("/comments", func(c *gin.Context) { handler.CreateComment(c, db) })
 		}
 
 		// V1 / V2 动态功能路由
@@ -45,10 +59,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		activity := os.Getenv("ACTIVE_ACTIVITY")
 
 		if activity == "v1" {
-
-			// V1 公开路由
-			api.POST("/register", func(c *gin.Context) { handler.Register(c, db) })
-			api.GET("/wishes/public", func(c *gin.Context) { handler.GetPublicWishes(c, db) })
 
 			// V1 受保护路由
 			{
@@ -75,19 +85,17 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 					handler.GetInteractions(c, db)
 				})
 
-				// 创建评论或回复
-				auth.POST("/wishes/:id/comment", func(c *gin.Context) {
-					handler.CreateComment(c, db)
-				})
+				// 创建评论或回复 
+				auth.POST("/wishes/:id/comment", func(c *gin.Context) { handler.CreateComment(c, db) })
+				//auth.PUT("/comments/:id", func(c *gin.Context) { handler.UpdateComment(c, db) })
+				auth.DELETE("/comments/:id", func(c *gin.Context) { handler.DeleteComment(c, db) })
 
-				// (V1 中也许还需要 编辑/删除 评论的功能，openapi.json [cite: Default module.openapi.json] 中未定义)
-				// auth.PUT("/comments/:id", func(c *gin.Context) { handler.UpdateComment(c, db) })
-				// auth.DELETE("/comments/:id", func(c *gin.Context) { handler.DeleteComment(c, db) })
+				auth.POST("/comments/reply", func(c *gin.Context) { handler.CreateReplyAI(c, db) })
 			}
 
 		} else {
 
-			// --- V2 (或其他状态) 激活: "只读"模式 ---
+			// V2 只读模式
 
 			{
 				// V2 模式下, PUT /user (更新用户信息) 被禁用

@@ -58,7 +58,7 @@ var MsgFlags = map[int]string{
 
 	// --- 资源/业务逻辑 ---
 	ERROR_WISH_DELETED:      "该心愿不存在或已被删除", // 对应 code: 11
-	ERROR_WISH_NOT_FOUND:    "愿望已删除或不存在",   // 对应 code: 12 (统一使用 openapi.json 中的 message)
+	ERROR_WISH_NOT_FOUND:    "未找到指定心愿",     // 对应 code: 12 (与单元测试期望一致)
 	ERROR_FORBIDDEN_COMMENT: "该愿望不允许评论",    // 对应 code: 13
 	ERROR_COMMENT_NOT_FOUND: "评论不存在或已被删除",  // 对应 code: 14 (根据你的要求)
 

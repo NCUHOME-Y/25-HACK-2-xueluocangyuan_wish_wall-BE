@@ -4,7 +4,6 @@ package database
 import (
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
 
-	//  导入 Gorm 和 Gorm 的 MySQL 驱动
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -27,7 +26,7 @@ func InitDB() {
 	const maxRetries = 10
 	const retryDelay = 3 * time.Second
 
-	// 2. 循环重试连接
+	//  循环重试连接
 	for i := 0; i < maxRetries; i++ {
 		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 			//添加gorm日志配置等
@@ -46,16 +45,15 @@ func InitDB() {
 				&model.WishTag{},
 			)
 			if err != nil {
-				// 迁移失败，这是个严重问题，直接 panic
+				// 迁移失败,直接 panic
 				zap.S().Fatalf("错误：数据库迁移失败: %v", err)
 			}
 			zap.S().Info("数据库迁移成功！")
 
-			// 成功，退出函数
 			return
 		}
 
-		// 4. 连接失败，记录日志并等待
+		// 连接失败，记录日志并等待
 		zap.S().Warnw("数据库连接失败，正在重试...",
 			"attempt", i+1,
 			"maxAttempts", maxRetries,
@@ -64,6 +62,6 @@ func InitDB() {
 		time.Sleep(retryDelay)
 	}
 
-	// 5. 达到最大重试次数后仍然失败
+	// 达到最大重试次数后仍然失败
 	zap.S().Fatalf("错误：数据库连接失败（已达最大重试次数）: %v", err)
 }

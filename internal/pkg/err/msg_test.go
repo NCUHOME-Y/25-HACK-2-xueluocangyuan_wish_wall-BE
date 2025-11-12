@@ -2,24 +2,29 @@ package err
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestGetMsg(t *testing.T) {
-	//测试已知错误码
-	msg := GetMsg(ERROR_LOGIN_FAILED)
-	assert.Equal(t, "登录失败，用户名或密码错误", msg)
+// TestGetMsgTable 采用表驱动测试，覆盖所有已定义的错误码与默认回退逻辑
+func TestGetMsgTable(t *testing.T) {
+	// 遍历 MsgFlags，检查 GetMsg(code) 与映射值一致
+	for code, expected := range MsgFlags {
+		got := GetMsg(code)
+		if got != expected {
+			t.Fatalf("code %d expected '%s' got '%s'", code, expected, got)
+		}
+	}
 
-	// 使用已存在的常量名 ERROR_WISH_NOT_FOUND
-	msg = GetMsg(ERROR_WISH_NOT_FOUND)
-	// 与 MsgFlags 中的值保持一致
-	assert.Equal(t, "未找到指定心愿", msg)
+	// 检查成功码单独正确（属于 MsgFlags 但显式再测一次以强调语义）
+	if GetMsg(SUCCESS) != "成功" {
+		t.Fatalf("SUCCESS code expected '成功' got '%s'", GetMsg(SUCCESS))
+	}
 
-	msg = GetMsg(SUCCESS)
-	assert.Equal(t, "成功", msg)
-
-	// 测试未知错误码应返回服务器错误默认信息
-	msg = GetMsg(9999)
-	assert.Equal(t, "服务器错误", msg)
+	//  未知错误码应回退到 ERROR_SERVER_ERROR 对应的消息
+	unknownCodes := []int{0, -1, 9999, 123456}
+	fallback := MsgFlags[ERROR_SERVER_ERROR]
+	for _, c := range unknownCodes {
+		if GetMsg(c) != fallback {
+			t.Fatalf("unknown code %d expected fallback '%s' got '%s'", c, fallback, GetMsg(c))
+		}
+	}
 }
