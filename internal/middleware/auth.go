@@ -49,15 +49,14 @@ func LoggerMiddleware() gin.HandlerFunc {
 
 func RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// (使用 'apperr' 作为别名)
-		defer func() {// 捕获 Panic
+		defer func() { // 捕获 Panic
 			if r := recover(); r != nil {
 				logger.Log.Errorw("服务器崩溃 (Panic)", "error", r)
 
-				c.JSON(http.StatusOK, gin.H{
+				c.JSON(http.StatusInternalServerError, gin.H{
 					"code":    apperr.ERROR_SERVER_ERROR,                // code: 10
-					"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR), // "服务器内部错误"
-					"data":    gin.H{},                                  // data 是空对象
+					"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR), 
+					"data":    gin.H{},                                  
 				})
 			}
 		}()
@@ -71,9 +70,9 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,                // code: 3
-				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED), // "登录已过期..."
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED), 
 				"data":    gin.H{"error": "未提供 Authorization Header"},
 			})
 			c.Abort()
@@ -82,7 +81,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
 				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{"error": "缺少 'Bearer ' 前缀"},
@@ -95,12 +94,46 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		claims, parseErr := util.ParseToken(tokenString)
 
 		if parseErr != nil {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"code":    apperr.ERROR_UNAUTHORIZED,
 				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{"error": parseErr.Error()}, // 包含具体错误
 			})
 			c.Abort()
+			return
+		}
+
+		// 验证成功
+		c.Set("userID", claims.UserID)
+		c.Next()
+	}
+}
+
+// 检查 Token，如果有效，则注入 "userID"
+// 如果无效或不存在，它*不会*报错，而是直接放行 (c.Next())
+func JWTOptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+
+		if authHeader == "" {
+			// 未提供 Token，直接放行
+			c.Next()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if !(len(parts) == 2 && parts[0] == "Bearer") {
+			// Token 格式错误，直接放行
+			c.Next()
+			return
+		}
+
+		tokenString := parts[1]
+		claims, parseErr := util.ParseToken(tokenString)
+
+		if parseErr != nil {
+			//  Token 过期或无效，直接放行
+			c.Next()
 			return
 		}
 

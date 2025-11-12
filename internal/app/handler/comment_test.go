@@ -6,60 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
-	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/gorm"
 )
-
-
-
-
-// parseResponse 在 user_test.go 中定义，避免重复声明
-
-// createUser 在 user_test.go 中定义，避免重复声明
-
-// createUserWithRole 在测试数据库中创建一个指定角色的用户
-func createUserWithRole(username, password, role string) *model.User {
-	u := createUser(username, password)
-	if role != "user" {
-		if err := testDB.Model(&u).Update("role", role).Error; err != nil {
-			logger.Log.Fatalf("设置用户角色失败: %v", err)
-		}
-		u.Role = role
-	}
-	return u
-}
-
-// createWish 在测试数据库中创建一个心愿
-func createWish(userID uint, content string) *model.Wish {
-	wish := model.Wish{
-		UserID:  userID,
-		Content: content,
-	}
-	if err := testDB.Create(&wish).Error; err != nil {
-		logger.Log.Fatalf("创建测试心愿失败: %v", err)
-	}
-	return &wish
-}
-
-// createComment 在测试数据库中创建一个评论（并手动更新 wish 计数）
-func createComment(userID, wishID uint, content string) *model.Comment {
-	comment := model.Comment{
-		UserID:  userID,
-		WishID:  wishID,
-		Content: content,
-	}
-	// 手动模拟事务（
-	testDB.Create(&comment)
-	testDB.Model(&model.Wish{}).Where("id = ?", wishID).UpdateColumn("comment_count", gorm.Expr("comment_count + 1"))
-	return &comment
-}
 
 // TestCreateComment
 func TestCreateComment(t *testing.T) {
@@ -116,6 +71,71 @@ func TestCreateComment(t *testing.T) {
 		// 测试硬编码的错误消息
 		assert.Equal(t, apperr.GetMsg(apperr.ERROR_PARAM_INVALID), resp["message"]) //
 	})
+
+	t.Run("评论失败 (评论他人的私有愿望)", func(t *testing.T) {
+		// 1. 创建一个 "otherUser" 和他的 "privateWish"
+		otherUser := createUser("privateWishOwner", "pass")
+		privateWish := model.Wish{UserID: otherUser.ID, Content: "private", IsPublic: false}
+		testDB.Create(&privateWish)
+		// 由于模型设置了 default:true，显式将 is_public 更新为 false 以避免默认值覆盖
+		testDB.Model(&privateWish).Update("is_public", false)
+
+		// 2. 尝试用 "user" (token) 去评论 "privateWish"
+		reqBody := gin.H{"wishId": privateWish.ID, "content": "I see you"}
+		body, _ := json.Marshal(reqBody)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/comments", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token) // 使用 'commenter' (user) 的 token
+		testRouter.ServeHTTP(w, req)
+
+		// 3. 断言 401 Unauthorized 和特定错误码 13
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		resp := parseResponse(t, w)
+		assert.Equal(t, float64(apperr.ERROR_FORBIDDEN_COMMENT), resp["code"])
+	})
+
+	t.Run("创建评论失败 (AI 判定违规)", func(t *testing.T) {
+		// 确保 AI Key 存在
+		if os.Getenv("SILICONFLOW_API_KEY") == "" {
+			t.Skip("SILICONFLOW_API_KEY 环境变量未设置, 跳过 AI 违规测试")
+		}
+
+		// "我恨这个世界" 在 app_test.go 中被视为违规
+		reqBody := gin.H{"wishId": wish.ID, "content": "我恨这个世界，我要跳楼了"}
+		body, _ := json.Marshal(reqBody)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/comments", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		testRouter.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code) // 应该是 400
+		resp := parseResponse(t, w)
+		assert.Equal(t, float64(apperr.ERROR_PARAM_INVALID), resp["code"])
+		data, _ := resp["data"].(map[string]interface{})
+		assert.Equal(t, "内容未通过审核", data["error"]) // 验证 handler 返回的特定错误
+	})
+
+	t.Run("创建评论失败 (AI 服务错误 - 内容为空)", func(t *testing.T) {
+		reqBody := gin.H{"wishId": wish.ID, "content": " "} // 空内容
+		body, _ := json.Marshal(reqBody)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/comments", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		testRouter.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code) // 应该是 400
+		resp := parseResponse(t, w)
+		assert.Equal(t, float64(apperr.ERROR_PARAM_INVALID), resp["code"])
+		data, _ := resp["data"].(map[string]interface{})
+		// 验证错误是否从 ai_service 传递上来
+		assert.Equal(t, "内容不能为空", data["error"])
+	})
 }
 
 // TestDeleteComment
@@ -139,8 +159,9 @@ func TestDeleteComment(t *testing.T) {
 		testRouter.ServeHTTP(w, req)
 
 		resp := parseResponse(t, w)
-		assert.Equal(t, float64(apperr.ERROR_PARAM_INVALID), resp["code"])
-		assert.Equal(t, apperr.GetMsg(apperr.ERROR_PARAM_INVALID), resp["message"])
+		// 现在未授权删除返回 ERROR_FORBIDDEN_DELETE
+		assert.Equal(t, float64(apperr.ERROR_FORBIDDEN_DELETE), resp["code"])
+		assert.Equal(t, apperr.GetMsg(apperr.ERROR_FORBIDDEN_DELETE), resp["message"])
 	})
 
 	t.Run("管理员删除成功", func(t *testing.T) {
@@ -178,6 +199,33 @@ func TestDeleteComment(t *testing.T) {
 		testDB.First(&updatedWish, wish.ID)
 		assert.Equal(t, 0, updatedWish.CommentCount, "评论数应再次减为 0")
 	})
+
+	t.Run("心愿主人删除评论成功 (非评论作者)", func(t *testing.T) {
+		// author 是心愿主人 (使用 authorToken)
+		// otherUser 是评论作者
+		wishByAuthor := createWish(author.ID, "wish by author")
+		commentByOther := createComment(otherUser.ID, wishByAuthor.ID, "comment by other")
+
+		// 确保评论计数为 1
+		var wishCheck model.Wish
+		testDB.First(&wishCheck, wishByAuthor.ID)
+		assert.Equal(t, 1, wishCheck.CommentCount)
+
+		w := httptest.NewRecorder()
+		// 使用 心愿主人(author) 的 token 去删除 otherUser 的评论
+		req, _ := http.NewRequest("DELETE", "/api/comments/"+strconv.Itoa(int(commentByOther.ID)), nil)
+		req.Header.Set("Authorization", "Bearer "+authorToken)
+		testRouter.ServeHTTP(w, req)
+
+		// 断言成功
+		assert.Equal(t, http.StatusOK, w.Code)
+		resp := parseResponse(t, w)
+		assert.Equal(t, float64(apperr.SUCCESS), resp["code"])
+
+		// 检查数据库
+		testDB.First(&wishCheck, wishByAuthor.ID)
+		assert.Equal(t, 0, wishCheck.CommentCount, "评论数应减为 0")
+	})
 }
 
 // TestListCommentsByWish
@@ -214,44 +262,5 @@ func TestListCommentsByWish(t *testing.T) {
 		firstComment, _ := items[0].(map[string]interface{})
 		commentUser, _ := firstComment["user"].(map[string]interface{})
 		assert.Equal(t, user.Nickname, commentUser["nickname"])
-	})
-}
-
-// TestUpdateComment
-func TestUpdateComment(t *testing.T) {
-	cleanup(testDB)
-	author := createUserWithRole("author", "pass", "user")
-	authorToken := createToken(author.ID)
-	wish := createWish(author.ID, "test wish")
-	comment := createComment(author.ID, wish.ID, "original content")
-
-	t.Run("作者更新成功", func(t *testing.T) {
-		reqBody := gin.H{"content": "Updated by author"}
-		body, _ := json.Marshal(reqBody)
-
-		w := httptest.NewRecorder()
-		// (警告：假设路由是 PUT /api/comments/:id。你的 router.go 里没有注册这个!)
-		req, _ := http.NewRequest("PUT", "/api/comments/"+strconv.Itoa(int(comment.ID)), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+authorToken)
-		testRouter.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-		resp := parseResponse(t, w)
-		assert.Equal(t, float64(apperr.SUCCESS), resp["code"])
-		// 使用统一的消息源
-		assert.Equal(t, apperr.GetMsg(apperr.SUCCESS), resp["message"]) //
-
-		data, _ := resp["data"].(map[string]interface{})
-		assert.Equal(t, "Updated by author", data["content"])
-
-		// 检查 "幽灵用户" Bug 是否修复
-		respUser, _ := data["user"].(map[string]interface{})
-		assert.Equal(t, float64(author.ID), respUser["id"])
-
-		// 检查数据库
-		var updatedComment model.Comment
-		testDB.First(&updatedComment, comment.ID)
-		assert.Equal(t, "Updated by author", updatedComment.Content)
 	})
 }

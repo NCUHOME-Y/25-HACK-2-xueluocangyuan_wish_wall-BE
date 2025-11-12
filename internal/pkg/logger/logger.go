@@ -14,7 +14,7 @@ func InitLogger() {
 		err    error
 	)
 
-	// 根据 GIN_MODE 环境变量判断运行模式：release -> 生产；否则视为开发模式
+	// 根据 GIN_MODE 环境变量判断运行模式：release 
 	if os.Getenv("GIN_MODE") == "release" {
 		// 生产环境，使用更严格的生产配置（JSON 格式）
 		logger, err = zap.NewProduction()
@@ -33,10 +33,10 @@ func InitLogger() {
 	Log.Info("zap logger 初始化成功")
 }
 
-// Log 是包级导出的 SugaredLogger，供项目其他包直接调用，例如 logger.Log.Infow(...)
+// Log 是包级导出的 SugaredLogger，供项目其他包直接调用
 var Log *zap.SugaredLogger
 
-// GetLogger 返回底层 *zap.Logger（如果需要）
+// GetLogger 返回底层 *zap.Logger
 func GetLogger() *zap.Logger {
 	return zap.L()
 }

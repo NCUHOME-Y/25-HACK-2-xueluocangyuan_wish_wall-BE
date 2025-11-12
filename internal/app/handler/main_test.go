@@ -1,14 +1,18 @@
 package handler_test
 
 import (
+	"encoding/json"
+	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
+	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/util"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/router"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -25,7 +29,7 @@ func TestMain(m *testing.M) {
 	// 初始化日志系统
 	logger.InitLogger()
 
-	// internal/app/handler 目录，.env 在三层目录之上
+	// internal/app/handler 目录，
 	if err := godotenv.Load("../../../.env"); err != nil {
 		logger.Log.Fatalf("加载 .env 文件失败 : %v", err)
 	}
@@ -72,4 +76,69 @@ func cleanup(db *gorm.DB) {
 	db.Exec("DELETE FROM likes")
 	db.Exec("DELETE FROM wishes")
 	db.Exec("DELETE FROM users")
+}
+
+func parseResponse(t *testing.T, w *httptest.ResponseRecorder) map[string]interface{} {
+	var resp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		logger.Log.Fatalf("无法解析 JSON 响应: %v", w.Body.String())
+	}
+	return resp
+}
+
+func createUser(username, password string) *model.User {
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	user := model.User{
+		Username: username,
+		Password: string(hashedPassword),
+		Nickname: username,
+		Role:     "user",
+	}
+	if err := testDB.Create(&user).Error; err != nil {
+		logger.Log.Fatalf("创建测试用户失败: %v", err)
+	}
+	return &user
+}
+
+func createToken(userID uint) string {
+	os.Setenv("JWT_SECRET", "my_strong_secret_key!")
+	token, err := util.GenerateToken(userID)
+	if err != nil {
+		logger.Log.Fatalf("生成测试Token失败: %v", err)
+	}
+	return token
+}
+
+func createUserWithRole(username, password, role string) *model.User {
+	u := createUser(username, password)
+	if role != "user" {
+		if err := testDB.Model(&u).Update("role", role).Error; err != nil {
+			logger.Log.Fatalf("设置用户角色失败: %v", err)
+		}
+		u.Role = role
+	}
+	return u
+}
+
+func createWish(userID uint, content string) *model.Wish {
+	wish := model.Wish{
+		UserID:   userID,
+		Content:  content,
+		IsPublic: true, // 默认为 public
+	}
+	if err := testDB.Create(&wish).Error; err != nil {
+		logger.Log.Fatalf("创建测试心愿失败: %v", err)
+	}
+	return &wish
+}
+
+func createComment(userID, wishID uint, content string) *model.Comment {
+	comment := model.Comment{
+		UserID:  userID,
+		WishID:  wishID,
+		Content: content,
+	}
+	testDB.Create(&comment)
+	testDB.Model(&model.Wish{}).Where("id = ?", wishID).UpdateColumn("comment_count", gorm.Expr("comment_count + 1"))
+	return &comment
 }

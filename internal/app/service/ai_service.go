@@ -13,7 +13,7 @@ import (
 
 var (
 	systemPrompt = `你是一个非常严格的中文许愿墙内容审核员。
-你的唯一任务是判断用户提交的愿望是否包含任何形式的：
+你的唯一任务是判断用户提交的信息是否包含任何形式的：
 1. 色情或低俗内容
 2. 暴力或血腥
 3. 辱骂、人身攻击或仇恨言论
@@ -21,7 +21,7 @@ var (
 5. 自残或自杀意图
 6. 任何其他不适合在公共场合展示的不当言论
 
-请仔细阅读 [用户愿望]，然后**只回答一个词**:
+请仔细阅读 [用户信息]，然后**只回答一个词**:
 - 如果内容**安全**，请回答 "true"
 - 如果内容**不安全或违规**，请回答 "false"
 `
@@ -48,7 +48,6 @@ func CheckContent(content string) (isViolating bool, err error) {
 	}
 
 	config := openai.DefaultConfig(apiKey)
-	// Allow overriding the base URL for testing (e.g., mock server)
 	baseURL := os.Getenv("SILICONFLOW_BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://api.siliconflow.cn/v1"

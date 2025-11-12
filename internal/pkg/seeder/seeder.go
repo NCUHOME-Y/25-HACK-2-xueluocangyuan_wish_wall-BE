@@ -8,7 +8,7 @@ import (
 
 // SeedData 负责填充初始数据
 func SeedData(db *gorm.DB) {
-	// --- 1. 检查是否需要填充 ---
+	//  检查是否需要填充 
 	var count int64
 	db.Model(&model.User{}).Where("role = ?", "bot").Count(&count)
 
@@ -18,8 +18,7 @@ func SeedData(db *gorm.DB) {
 	}
 	zap.S().Info("Seeder: 未发现 'bot' 用户，开始执行数据填充...")
 
-	// --- 2. 创建机器人用户 ---
-	// (V12 统一模型 需要 Username 和 Password)
+	//  创建机器人用户 ---
 	bots := []model.User{
 		{Username: "bot_1", Password: "bot_fake_password_hash", Nickname: "许愿星", Role: "bot"},
 		{Username: "bot_2", Password: "bot_fake_password_hash", Nickname: "小雪花", Role: "bot"},
@@ -37,7 +36,7 @@ func SeedData(db *gorm.DB) {
 	}
 	zap.S().Infof("Seeder: 成功创建 %d 个 'bot' 用户。", len(bots))
 
-	// --- 3. 创建 50 条假的心愿 ---
+	//  创建 50 条假的心愿 
 	wishContents := []string{
 		"希望期末考试顺利通过!", "欸欸我要谈外国帅哥", "家人身体健康，万事如意。",
 		"希望能找到一份好实习", "什么时候能中彩票啊", "好想去旅游...", "我要吃十斤咖喱饭",
@@ -49,13 +48,13 @@ func SeedData(db *gorm.DB) {
 		"希望能多读几本好书", "希望能改善人际关系", "希望能提升自己的厨艺",
 		"好想早点回家", "小学生愿望成真",
 	}
-	
+
 	var fakeWishes []model.Wish
 	for i := 0; i < 55; i++ {
 		fakeWishes = append(fakeWishes, model.Wish{
-			UserID:     bots[i%len(bots)].ID,
-			Content:    wishContents[i%len(wishContents)],
-			IsPublic:   true,
+			UserID:   bots[i%len(bots)].ID,
+			Content:  wishContents[i%len(wishContents)],
+			IsPublic: true,
 		})
 	}
 	if err := db.Create(&fakeWishes).Error; err != nil {

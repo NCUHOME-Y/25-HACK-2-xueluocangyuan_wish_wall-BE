@@ -1,4 +1,3 @@
-
 package model
 
 import (
@@ -20,12 +19,11 @@ type User struct {
 	Username  string         `gorm:"size:50;not null;uniqueIndex" json:"username"`
 
 	// 关联关系
-	Wishes    []Wish     `gorm:"foreignKey:UserID" json:"wishes,omitempty"`
-	Likes     []Like     `gorm:"foreignKey:UserID" json:"likes,omitempty"`
-	Comments  []Comment  `gorm:"foreignKey:UserID" json:"comments,omitempty"`
-	
-  
-  Role string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
+	Wishes   []Wish    `gorm:"foreignKey:UserID" json:"wishes,omitempty"`
+	Likes    []Like    `gorm:"foreignKey:UserID" json:"likes,omitempty"`
+	Comments []Comment `gorm:"foreignKey:UserID" json:"comments,omitempty"`
+
+	Role string `gorm:"size:16;default:'user'" json:"role"` // 角色，默认为"user"
 
 }
 
@@ -33,4 +31,3 @@ type User struct {
 func (User) TableName() string {
 	return "users"
 }
-
