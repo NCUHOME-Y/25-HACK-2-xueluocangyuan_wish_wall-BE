@@ -25,7 +25,7 @@ type CreateCommentRequest struct {
 type UserShort struct {
 	ID       uint   `json:"id"`
 	Nickname string `json:"nickname"`
-	AvatarID *uint  `json:"avatarId"`
+	AvatarID *uint  `json:"avatar_id"`
 }
 
 // CommentResponse 注释返回结构
@@ -39,17 +39,53 @@ type CommentResponse struct {
 }
 
 // CreateComment 创建评论：用户需登录（中间件将 userID 写入上下文）
-// - 校验请求体
-// - 校验愿望是否存在
-// - 创建评论并将 wish.comment_count +1
+// 校验请求体
+// 校验愿望是否存在
+// 创建评论并将 wish.comment_count +1
 func CreateComment(c *gin.Context, db *gorm.DB) {
-	var req CreateCommentRequest
+	// 允许两种方式指定 wishId：
+	// 1) 路由 /wishes/:id/comment 中的 :id
+	// 2) 请求体 JSON 中的 wishId 字段（当前路由是 POST /api/comments）
+
+	// 先尝试从路由参数读取
+	var wishID uint
+	if idStr := c.Param("id"); idStr != "" {
+		if id64, err := strconv.ParseUint(idStr, 10, 64); err == nil {
+			wishID = uint(id64)
+		} else {
+			logger.Log.Warnw("CreateComment: URL wishId 解析失败", "error", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    apperr.ERROR_PARAM_INVALID,
+				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+				"data":    gin.H{"error": "Wish ID 无效"},
+			})
+			return
+		}
+	}
+
+	// 绑定 JSON：必须包含 content，可选 wishId（当路由无 id 时必须提供）
+	var req struct {
+		WishID  uint   `json:"wishId"`
+		Content string `json:"content" binding:"required"`
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Log.Warnw("CreateComment: 参数绑定失败", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
 			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
 			"data":    gin.H{"error": err.Error()},
+		})
+		return
+	}
+
+	if wishID == 0 {
+		wishID = req.WishID
+	}
+	if wishID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "缺少 wishId"},
 		})
 		return
 	}
@@ -68,9 +104,9 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 
 	// 校验愿望是否存在
 	var wish model.Wish
-	if err := db.First(&wish, req.WishID).Error; err != nil {
+	if err := db.First(&wish, wishID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			logger.Log.Infow("CreateComment: wish 未找到", "wishId", req.WishID)
+			logger.Log.Infow("CreateComment: wish 未找到", "wishId", wishID)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    apperr.ERROR_PARAM_INVALID,
 				"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
@@ -89,7 +125,7 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 
 	// 检查是否允许评论
 	if !wish.IsPublic && wish.UserID != userID {
-		logger.Log.Infow("CreateComment: 评论被拒绝，尝试评论私有愿望", "wishId", req.WishID, "userID", userID)
+		logger.Log.Infow("CreateComment: 评论被拒绝，尝试评论私有愿望", "wishId", wishID, "userID", userID)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    apperr.ERROR_FORBIDDEN_COMMENT, // <-- 对应 code 13
 			"message": apperr.GetMsg(apperr.ERROR_FORBIDDEN_COMMENT),
@@ -124,14 +160,14 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 	var comment model.Comment
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		comment = model.Comment{
-			WishID:  req.WishID,
+			WishID:  wishID,
 			UserID:  userID,
 			Content: req.Content,
 		}
 		if err := tx.Create(&comment).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&model.Wish{}).Where("id = ?", req.WishID).
+		if err := tx.Model(&model.Wish{}).Where("id = ?", wishID).
 			UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).Error; err != nil {
 			return err
 		}
@@ -151,8 +187,8 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 		// 预加载失败不是致命错误，但要记录日志
 		logger.Log.Warnw("CreateComment: 重新查询评论并预加载用户失败，可能返回无用户信息", "error", err, "commentID", comment.ID)
 	}
-
-	resp := CommentResponse{
+	//配合前端扁平化
+	/*resp := CommentResponse{
 		ID:        comment.ID,
 		WishID:    comment.WishID,
 		UserID:    comment.UserID,
@@ -163,6 +199,18 @@ func CreateComment(c *gin.Context, db *gorm.DB) {
 			Nickname: comment.User.Nickname,
 			AvatarID: comment.User.AvatarID,
 		},
+	}*/
+
+	resp := gin.H{
+		"id":           comment.ID,
+		"wishId":       comment.WishID,
+		"userId":       comment.UserID,
+		"content":      comment.Content,
+		"createdAt":    comment.CreatedAt,
+		"userNickname": comment.User.Nickname,
+		"userAvatar":   comment.User.AvatarID, // (确保 User.AvatarID 已被 Preload)
+		"likeCount":    0,                     // 前端需要，暂时给 0
+		"isOwn":        true,                  // 刚创建的为true
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -237,7 +285,7 @@ func DeleteComment(c *gin.Context, db *gorm.DB) {
 			logger.Log.Errorw("DeleteComment: 无法找到评论所属的愿望", "error", err, "wishID", comment.WishID)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    apperr.ERROR_SERVER_ERROR,
-				"message": "数据关联错误", // 这是一个服务器内部错误
+				"message": "数据关联错误", // 服务器内部错误
 				"data":    gin.H{},
 			})
 			return

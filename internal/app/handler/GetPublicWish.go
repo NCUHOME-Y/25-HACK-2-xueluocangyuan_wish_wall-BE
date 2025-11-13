@@ -128,7 +128,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 	items := make([]gin.H, 0, len(wishes))
 	for _, w := range wishes {
 		item := gin.H{
-			"wishId":       w.ID,
+			"id":           w.ID,
 			"content":      w.Content,
 			"background":   w.Background,
 			"isPublic":     w.IsPublic,
@@ -155,7 +155,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 			"page":     page,
 			"pageSize": pageSize,
 			"tag":      tag,
-			"items":    items,
+			"wishes":   items,
 		},
 	})
 }

@@ -17,8 +17,10 @@ var DB *gorm.DB
 
 // InitDB 负责初始化数据库连接
 func InitDB() {
+	//调用 os 包的 Getenv 函数，读取名为 MYSQL_DSN 的环境变量。
 	dsn := os.Getenv("MYSQL_DSN")
 	if dsn == "" {
+		// 回退(Fallback) 逻辑。如果没设置环境变量，它会使用一个硬编码的、用于开发的 DSN 字符串。
 		dsn = "root:your_password@tcp(127.0.0.1:3306)/wish_wall?charset=utf8mb4&parseTime=True&loc=Local"
 		zap.S().Warn("环境变量MYSQL_DSN未设置,使用默认值连接数据库")
 	}
@@ -33,7 +35,7 @@ func InitDB() {
 		})
 
 		if err == nil {
-			// 3. 连接成功
+			//  连接成功
 			zap.S().Info("数据库连接成功！")
 
 			// 运行 Gorm 自动迁移

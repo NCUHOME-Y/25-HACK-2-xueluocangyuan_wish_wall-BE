@@ -15,15 +15,15 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.New()
 
 	//  注册全局中间件
-	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.CORSMiddleware())//跨域资源共享（CORS）中间件。允许或拒绝来自不同域名的前端页面访问你的 API。
 	r.Use(middleware.LoggerMiddleware())
-	r.Use(middleware.RecoveryMiddleware())
+	r.Use(middleware.RecoveryMiddleware())//这个中间件会“接住”这个崩溃，防止整个服务器停止服务，并通常会返回一个 500 错误给客户端。
 
 	//  创建 /api 根路由组
 	api := r.Group("/api")
-	{
+	{	// 匿名函数可以使用它被定义时所在作用域的变量（这里就是 db）。
 		// 注册 (提升到公共区域，防止 ACTIVE_ACTIVITY 未设置时 404)
-		api.POST("/register", func(c *gin.Context) { handler.Register(c, db) })
+		api.POST("/register", func(c *gin.Context) { handler.Register(c, db) })//调用 handler.Register 函数，并把 gin.Context 和数据库连接 db 传递给它。
 
 		// 登录 (V1 和 V2 都需要)
 		api.POST("/login", func(c *gin.Context) { handler.Login(c, db) })

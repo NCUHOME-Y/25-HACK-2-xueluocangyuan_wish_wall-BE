@@ -42,7 +42,7 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 	}
 	userID, ok := userIDInterface.(uint)
 	if !ok {
-		logger.Log.Error("点赞失败：用户ID类型转换错误")
+		logger.Log.Error("点赞失败:用户ID类型转换错误")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,
 			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
@@ -145,7 +145,7 @@ func RespondLike(c *gin.Context, likeCount int, liked bool, wishID uint) {
 		"code":    apperr.SUCCESS,
 		"message": apperr.GetMsg(apperr.SUCCESS),
 		"data": gin.H{
-			"wishID":    wishID,
+			"wishId":    wishID,
 			"likeCount": likeCount,
 			"liked":     liked,
 		},

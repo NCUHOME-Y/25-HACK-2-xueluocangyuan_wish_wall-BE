@@ -10,7 +10,7 @@ type User struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	Password  string         `gorm:"size:255;not null" json:"-"`
 	Nickname  string         `gorm:"size:50;not null;default:''" json:"nickname"`
-	AvatarID  *uint          `gorm:"default:null" json:"avatarId"`
+	AvatarID  *uint          `gorm:"default:null" json:"avatar_id"`
 	WishValue int            `gorm:"not null;default:0" json:"wishValue"`
 	Bio       *string        `gorm:"type:text" json:"bio,omitempty"`
 	CreatedAt time.Time      `json:"createdAt"`

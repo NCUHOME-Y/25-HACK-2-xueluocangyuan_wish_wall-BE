@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
-	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service" 
+	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/service"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/util"
@@ -29,7 +29,7 @@ type LoginRequest struct {
 
 type UpdateUserRequest struct {
 	Nickname *string `json:"nickname"`
-	AvatarID *uint   `json:"avatarID"` //指针可以用来区分未传和传了0
+	AvatarID *uint   `json:"avatar_id"` //指针可以用来区分未传和传了0
 }
 
 // UserResponse 定义了注册/登录成功时返回的用户信息
@@ -37,7 +37,7 @@ type UserResponse struct {
 	ID        uint      `json:"id"`
 	Username  string    `json:"username"`
 	Nickname  string    `json:"nickname"`
-	AvatarID  *uint     `json:"avatarID"`
+	AvatarID  *uint     `json:"avatar_id"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"createdAt"`
 }
@@ -75,12 +75,10 @@ func Register(c *gin.Context, db *gorm.DB) {
 		req.Nickname = req.Username
 	}
 
-	
 	// AI审核昵称
 	isViolating, aiErr := service.CheckContent(req.Nickname)
 	if aiErr != nil {
-		// AI 服务本身出错 (例如内容为空/过长，或 API key 问题)
-		// ai_service 内部会处理空字符串等，所以这里返回 400
+		// AI 服务本身出错 
 		logger.Log.Warnw("注册时昵称审核服务失败或输入无效", "nickname", req.Nickname, "error", aiErr)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
@@ -99,10 +97,11 @@ func Register(c *gin.Context, db *gorm.DB) {
 		})
 		return
 	}
-	
 
 	// 检查用户是否已存在
+	// 准备一个 User 模型
 	var existingUser model.User
+	//handler直接使用了db连接
 	if err := db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
 		logger.Log.Warnw("注册失败：用户名已存在", "username", req.Username)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -121,7 +120,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	//  加密密码
+	//  调用 bcrypt 库将明文密码 mypassword 变成一长串哈希值。
 	hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if hashErr != nil {
 		logger.Log.Errorw("注册时密码加密失败", "error", hashErr)
@@ -133,7 +132,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	//  创建新用户
+	//  创建新用户，实例化
 	newUser := model.User{
 		Username: req.Username,
 		Password: string(hashedPassword),
@@ -154,6 +153,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	logger.Log.Infow("新用户注册成功", "username", newUser.Username, "userID", newUser.ID)
 
 	//  生成 Token
+	// GenerateToken 使用 newUser.ID（数据库回填的 ID）和 JWT_SECRET（来自 .env）生成一个 JWT 字符串。
 	token, tokenErr := util.GenerateToken(newUser.ID)
 	if tokenErr != nil {
 		logger.Log.Errorw("注册成功但生成 Token 失败", "error", tokenErr)
@@ -166,6 +166,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 返回成功响应
+	// handler 将 newUser（包含数据库完整信息）转换为用于响应的 UserResponse 结构体
 	responseUser := UserResponse{
 		ID:        newUser.ID,
 		Username:  newUser.Username,
