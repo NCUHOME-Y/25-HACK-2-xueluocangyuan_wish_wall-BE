@@ -44,11 +44,16 @@ func TestCreateComment(t *testing.T) {
 		data, _ := resp["data"].(map[string]interface{})
 		assert.Equal(t, "My new comment", data["content"])
 
-		// 检查 "幽灵用户" Bug 是否修复
-
-		respUser, _ := data["user"].(map[string]interface{})
-		assert.Equal(t, float64(user.ID), respUser["id"])
-		assert.Equal(t, user.Nickname, respUser["nickname"])
+		// 响应已扁平化，不再返回嵌套 user 对象
+		assert.Equal(t, float64(user.ID), data["userId"])
+		assert.Equal(t, user.Nickname, data["userNickname"])
+		// 可选：校验其他新字段
+		if v, ok := data["isOwn"].(bool); ok {
+			assert.True(t, v)
+		}
+		if lc, ok := data["likeCount"].(float64); ok {
+			assert.Equal(t, float64(0), lc)
+		}
 
 		// 检查数据库
 		var updatedWish model.Wish

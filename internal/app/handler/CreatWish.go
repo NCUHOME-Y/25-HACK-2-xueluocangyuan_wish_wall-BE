@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 // 在保存到数据库前，会调用 service.CheckContent 进行内容 AI 审核
 func CreateWish(c *gin.Context, db *gorm.DB) {
 	// 1. 检查登录用户
@@ -39,9 +38,10 @@ func CreateWish(c *gin.Context, db *gorm.DB) {
 
 	//  绑定输入
 	var req struct {
-		Content    string `json:"content" binding:"required"`
-		Background string `json:"background"`
-		IsPublic   *bool  `json:"isPublic"`
+		Content    string   `json:"content" binding:"required"`
+		Background string   `json:"background"`
+		IsPublic   *bool    `json:"isPublic"`
+		Tags       []string `json:"tags"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Log.Warnw("创建愿望失败：参数绑定错误", "error", err)
@@ -89,7 +89,27 @@ func CreateWish(c *gin.Context, db *gorm.DB) {
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}
-	if err := db.Create(&wish).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		// 1. 创建 Wish
+		if err := tx.Create(&wish).Error; err != nil {
+			return err
+		}
+
+		// 2. 循环创建 Tags
+		if len(req.Tags) > 0 {
+			var tagsToCreate []model.WishTag
+			for _, tagName := range req.Tags {
+				tagsToCreate = append(tagsToCreate, model.WishTag{
+					WishID:  wish.ID, // 关联新创建的 wish ID
+					TagName: tagName, // 存入标签名
+				})
+			}
+			if err := tx.Create(&tagsToCreate).Error; err != nil {
+				return err // 如果创建标签失败，整个事务回滚
+			}
+		}
+		return nil
+	}); err != nil {
 		logger.Log.Errorw("创建愿望失败：保存到数据库出错", "userID", userID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    apperr.ERROR_SERVER_ERROR,

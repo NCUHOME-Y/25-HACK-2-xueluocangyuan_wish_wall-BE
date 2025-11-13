@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 // 请求参数说明（与前端接口定义一致）：page、pageSize
 // 返回当前登录用户自己发布的愿望列表（包含基础信息及该用户是否对每条愿望已点赞）
 func GetMyWishes(c *gin.Context, db *gorm.DB) {
@@ -44,11 +43,11 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
 		logger.Log.Warnw("获取我的愿望失败：页码无效", "page", pageStr, "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    apperr.ERROR_PARAM_INVALID,
-			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-			"data":    gin.H{"error": "页码无效"},
-		})
+	    c.JSON(http.StatusBadRequest, gin.H{
+		    "code":    apperr.ERROR_PARAM_INVALID,
+		    "message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+		    "data":    gin.H{"error": "页码无效"},
+	    })
 		return
 	}
 	pageSize, err := strconv.Atoi(pageSizeStr)
@@ -113,7 +112,7 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 	items := make([]gin.H, 0, len(wishes))
 	for _, w := range wishes {
 		item := gin.H{
-			"wishID":       w.ID,
+			"id":           w.ID,
 			"content":      w.Content,
 			"background":   w.Background,
 			"isPublic":     w.IsPublic,
@@ -130,7 +129,7 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 		items = append(items, item)
 	}
 
-	//  返回成功响应（响应中使用 page 和 pageSize 字段以匹配前端约定）
+	//  返回成功响应
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
 		"message": apperr.GetMsg(apperr.SUCCESS),
@@ -138,7 +137,7 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 			"total":    total,
 			"page":     page,
 			"pageSize": pageSize,
-			"items":    items,
+			"wishes":   items,
 		},
 	})
 }

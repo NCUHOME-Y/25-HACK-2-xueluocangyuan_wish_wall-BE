@@ -128,9 +128,9 @@ func CreateCommentAI(c *gin.Context, db *gorm.DB) {
 		"content":   comment.Content,
 		"createdAt": comment.CreatedAt,
 		"user": gin.H{
-			"id":       comment.User.ID,
-			"nickname": comment.User.Nickname,
-			"avatarId": comment.User.AvatarID,
+			"id":        comment.User.ID,
+			"nickname":  comment.User.Nickname,
+			"avatar_id": comment.User.AvatarID,
 		},
 	}
 
@@ -257,9 +257,9 @@ func CreateReplyAI(c *gin.Context, db *gorm.DB) {
 		"content":   reply.Content,
 		"createdAt": reply.CreatedAt,
 		"user": gin.H{
-			"id":       reply.User.ID,
-			"nickname": reply.User.Nickname,
-			"avatarId": reply.User.AvatarID,
+			"id":        reply.User.ID,
+			"nickname":  reply.User.Nickname,
+			"avatar_id": reply.User.AvatarID,
 		},
 	}
 

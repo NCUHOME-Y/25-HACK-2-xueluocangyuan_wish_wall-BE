@@ -79,7 +79,6 @@ func TestRegister(t *testing.T) {
 		assert.Equal(t, "输入错误，请输入十位学号", data["error"])
 	})
 
-
 	t.Run("注册失败 (昵称违规)", func(t *testing.T) {
 		if os.Getenv("SILICONFLOW_API_KEY") == "" {
 			t.Skip("SILICONFLOW_API_KEY 环境变量未设置, 跳过 AI 违规测试")
@@ -233,8 +232,8 @@ func TestUpdateUser(t *testing.T) {
 		var newAvatarID uint = 10
 		// gin.H 在测试中构建 json 更方便
 		reqBody, _ := json.Marshal(gin.H{
-			"nickname": newNickname,
-			"avatarID": newAvatarID,
+			"nickname":  newNickname,
+			"avatar_id": newAvatarID,
 		})
 
 		w := httptest.NewRecorder()
@@ -252,7 +251,7 @@ func TestUpdateUser(t *testing.T) {
 		data, _ := resp["data"].(map[string]interface{})
 		assert.Equal(t, newNickname, data["nickname"])
 		// JSON 解析数字默认为 float64，需要转换
-		assert.Equal(t, float64(newAvatarID), data["avatarID"])
+		assert.Equal(t, float64(newAvatarID), data["avatar_id"])
 
 		// 验证数据库
 		var updatedUser model.User
@@ -286,7 +285,6 @@ func TestUpdateUser(t *testing.T) {
 		data, _ := resp["data"].(map[string]interface{})
 		assert.Equal(t, "昵称包含不当内容，请修改", data["error"])
 	})
-
 
 	t.Run("更新失败 (AI服务错误 - 内容为空)", func(t *testing.T) {
 		cleanup(testDB)

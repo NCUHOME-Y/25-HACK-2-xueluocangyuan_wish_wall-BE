@@ -146,7 +146,7 @@ func TestGetMyWishes(t *testing.T) {
 		data, _ := resp["data"].(map[string]interface{})
 
 		assert.Equal(t, float64(2), data["total"], "User A 应该有 2 条愿望")
-		items, _ := data["items"].([]interface{})
+	items, _ := data["wishes"].([]interface{})
 		assert.Equal(t, 2, len(items), "返回的 items 数量应为 2")
 	})
 
@@ -169,7 +169,7 @@ func TestGetMyWishes(t *testing.T) {
 
 		assert.Equal(t, float64(15), data["total"])
 		assert.Equal(t, float64(2), data["page"])
-		items, _ := data["items"].([]interface{})
+	items, _ := data["wishes"].([]interface{})
 		assert.Equal(t, 5, len(items), "第2页应该只剩5条数据") // 15 = 10 + 5
 	})
 }
@@ -193,7 +193,7 @@ func TestGetPublicWishes(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		resp := parseResponse(t, w)
 		data, _ := resp["data"].(map[string]interface{})
-		items, _ := data["items"].([]interface{})
+	items, _ := data["wishes"].([]interface{})
 		firstWish, _ := items[0].(map[string]interface{})
 
 		// 未登录时, liked 字段必须为 false
@@ -209,7 +209,7 @@ func TestGetPublicWishes(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 		resp := parseResponse(t, w)
 		data, _ := resp["data"].(map[string]interface{})
-		items, _ := data["items"].([]interface{})
+	items, _ := data["wishes"].([]interface{})
 		firstWish, _ := items[0].(map[string]interface{})
 
 		// 已登录且点赞过, liked 字段必须为 true
