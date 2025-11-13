@@ -30,7 +30,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// 2. LoggerMiddleware
+
 func LoggerMiddleware() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
@@ -123,7 +123,7 @@ func JWTOptionalAuthMiddleware() gin.HandlerFunc {
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			// Token 格式错误，直接放行
+			// Token 格式错误，放
 			c.Next()
 			return
 		}
@@ -132,7 +132,7 @@ func JWTOptionalAuthMiddleware() gin.HandlerFunc {
 		claims, parseErr := util.ParseToken(tokenString)
 
 		if parseErr != nil {
-			//  Token 过期或无效，直接放行
+			//  Token 过期或无效
 			c.Next()
 			return
 		}
