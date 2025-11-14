@@ -13,8 +13,8 @@ RUN go mod download
 
 # 复制源代码
 COPY . .
-
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/myapp/main.go
+# cgo都来了（害怕），关闭cgo确保静态编译
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/myapp/main.go 
 
 # 使用一个更小的镜像来运行应用
 FROM alpine:latest
