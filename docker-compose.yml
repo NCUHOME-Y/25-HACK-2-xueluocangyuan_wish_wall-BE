@@ -10,7 +10,7 @@ services:
     networks:
       - wish-network
 
-  # Go 应用（qpp）
+  # Go 应用
   qpp:
     build: .
     ports:   
@@ -22,7 +22,7 @@ services:
     networks:
       - wish-network
 
-  # 数据库服务（MySQL）
+  # 数据库
   db:
     image: mysql:8.0
     restart: unless-stopped
