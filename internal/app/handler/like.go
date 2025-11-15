@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/app/model"
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
@@ -69,12 +70,13 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 		// Check if like already exists within the transaction
 		var existingLike model.Like
 		if err := tx.Where("wish_id = ? AND user_id = ?", wishID, userID).First(&existingLike).Error; err == nil {
-			// Unlike: delete the like record and decrement like_count
-			if err := tx.Delete(&existingLike).Error; err != nil {
+			
+			// Soft delete would retain the row and keep uniqueIndex (wish_id,user_id) blocked, causing duplicate key errors on re-like.
+			if err := tx.Unscoped().Delete(&existingLike).Error; err != nil {
 				logger.Log.Errorw("取消点赞失败", "wishID", wishID, "userID", userID, "error", err)
 				return err
 			}
-			if err := tx.Model(&wish).Update("like_count", gorm.Expr("like_count - 1")).Error; err != nil {
+			if err := tx.Model(&wish).Update("like_count", gorm.Expr("GREATEST(like_count - ?, 0)", 1)).Error; err != nil {
 				logger.Log.Errorw("取消点赞失败：更新点赞数出错", "wishID", wishID, "error", err)
 				return err
 			}
@@ -126,6 +128,29 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 			})
 			return
 		}
+
+		if strings.Contains(txErr.Error(), "Error 1062") {
+			logger.Log.Warnw("点赞失败：重复点赞（并发冲突）", "wishID", wishID, "userID", userID, "error", txErr)
+
+			// 这是一个并发冲突，不是服务器错误。
+			// 我们不应该返回 500，而是应该告诉前端 "操作已完成"（即已经点赞了）。
+			// 我们重新查询一次，获取最终的正确状态并返回。
+			var wish model.Wish
+			if err := db.First(&wish, wishID).Error; err == nil {
+				// 成功查询到最新的 likeCount
+				RespondLike(c, wish.LikeCount, true, wishID) // 告诉前端：你已经点赞了
+			} else {
+				// 如果连重新查询都失败了，才返回 500
+				logger.Log.Errorw("点赞并发冲突后，重新查询失败", "wishID", wishID, "error", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    apperr.ERROR_LIKE_FAILED,
+					"message": apperr.GetMsg(apperr.ERROR_LIKE_FAILED),
+					"data":    gin.H{},
+				})
+			}
+			return // 阻止执行下面的 500 错误
+		}
+
 		logger.Log.Errorw("点赞事务失败", "wishID", wishID, "userID", userID, "error", txErr)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    apperr.ERROR_LIKE_FAILED,
