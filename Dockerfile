@@ -8,7 +8,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # 下载依赖
-#只有go.mod和go.sum文件变化时才会重新下载依赖
+# 只有go.mod和go.sum文件变化时才会重新下载依赖
 RUN go mod download
 
 # 复制源代码
