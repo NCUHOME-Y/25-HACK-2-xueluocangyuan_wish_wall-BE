@@ -72,7 +72,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 				// 删除愿望
 				auth.DELETE("/wishes/:id", func(c *gin.Context) {
-					// handler.DeleteWish(c, db) // (请确保 handler.DeleteWish 存在)
+					 handler.DeleteWish(c, db) // (确保 handler.DeleteWish 存在)
 				})
 
 				// 点赞/取消点赞
