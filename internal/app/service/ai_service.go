@@ -19,7 +19,7 @@ var (
 3. 辱骂、人身攻击或仇恨言论
 4. 政治敏感或违法信息
 5. 自残或自杀意图
-6. 任何其他不适合在公共场合展示的不当言论
+6. 广告或垃圾信息
 
 请仔细阅读 [用户信息]，然后**只回答一个词**:
 - 如果内容**安全**，请回答 "true"
@@ -31,7 +31,7 @@ var (
 // isViolating= true 不安全，丢弃
 // isViolating= false 安全，接受
 func CheckContent(content string) (isViolating bool, err error) {
-	const maxContentLength = 1000
+	const maxContentLength = 100
 	trimmedContent := strings.TrimSpace(content)
 	if trimmedContent == "" {
 		logger.Log.Warnw("内容审核失败:内容为空", "content", content)

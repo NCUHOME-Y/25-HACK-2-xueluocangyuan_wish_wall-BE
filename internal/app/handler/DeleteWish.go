@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 func DeleteWish(c *gin.Context, db *gorm.DB) {
 	//  解析愿望ID
 	wishIDStr := c.Param("id")
@@ -79,13 +78,25 @@ func DeleteWish(c *gin.Context, db *gorm.DB) {
 			return errors.New("not_authorized") // 修改错误标识
 		}
 
-		
-		if err := tx.Delete(&wish).Error; err != nil {
+		// 级联硬删除：由于模型使用 DeletedAt 默认是软删除，这里显式使用 Unscoped() 做物理删除。
+		// 1. 删除关联的评论回复 (comments)
+		if err := tx.Unscoped().Where("wish_id = ?", wishID).Delete(&model.Comment{}).Error; err != nil {
 			return err
 		}
-		
+		// 2. 删除关联点赞 (likes)
+		if err := tx.Unscoped().Where("wish_id = ?", wishID).Delete(&model.Like{}).Error; err != nil {
+			return err
+		}
+		// 3. 删除关联标签 (wish_tags)
+		if err := tx.Unscoped().Where("wish_id = ?", wishID).Delete(&model.WishTag{}).Error; err != nil {
+			return err
+		}
+		// 4. 删除愿望本身 (wishes)
+		if err := tx.Unscoped().Delete(&wish).Error; err != nil {
+			return err
+		}
+
 		deletedAt = time.Now()
-	
 		return nil
 	}); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
