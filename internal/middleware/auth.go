@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"os"
 
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
@@ -15,8 +16,13 @@ import (
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		//c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+        if allowedOrigin == "" {
+            allowedOrigin = "http://localhost:5173" // 备用值
+        }
+        // 使用来自环境变量的值
+        c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, AccessToken, X-CSRF-Token, Authorization, Token, x-token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
