@@ -43,11 +43,11 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
 		logger.Log.Warnw("获取我的愿望失败：页码无效", "page", pageStr, "error", err)
-	    c.JSON(http.StatusBadRequest, gin.H{
-		    "code":    apperr.ERROR_PARAM_INVALID,
-		    "message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
-		    "data":    gin.H{"error": "页码无效"},
-	    })
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    apperr.ERROR_PARAM_INVALID,
+			"message": apperr.GetMsg(apperr.ERROR_PARAM_INVALID),
+			"data":    gin.H{"error": "页码无效"},
+		})
 		return
 	}
 	pageSize, err := strconv.Atoi(pageSizeStr)
@@ -80,6 +80,7 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 		Order("created_at desc").
 		Offset(offset).
 		Limit(pageSize).
+		Preload("User").
 		Find(&wishes).Error; err != nil {
 		logger.Log.Errorw("获取我的愿望失败：查询愿望出错", "userID", userID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -118,6 +119,9 @@ func GetMyWishes(c *gin.Context, db *gorm.DB) {
 			"isPublic":     w.IsPublic,
 			"likeCount":    w.LikeCount,
 			"commentCount": w.CommentCount,
+			"userId":       w.UserID,
+			"userNickname": w.User.Nickname,
+			"userAvatar":   w.User.AvatarID,
 			"createdAt":    w.CreatedAt,
 			"updatedAt":    w.UpdatedAt,
 		}

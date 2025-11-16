@@ -7,8 +7,11 @@ import (
 )
 
 type Wish struct {
-	ID           uint           `gorm:"primaryKey" json:"id"`
-	UserID       uint           `gorm:"not null;index" json:"userId"`
+	ID     uint `gorm:"primaryKey" json:"id"`
+	UserID uint `gorm:"not null;index" json:"userId"`
+	// 冗余字段：便于列表直接展示作者昵称与头像，无需额外联表
+	UserNickname string         `gorm:"size:50;not null;default:''" json:"userNickname"`
+	UserAvatarID *uint          `json:"userAvatar"`
 	Content      string         `gorm:"type:text;not null" json:"content"`
 	IsPublic     bool           `gorm:"not null;default:true" json:"isPublic"`
 	Background   string         `gorm:"size:50;default:'default'" json:"background"`

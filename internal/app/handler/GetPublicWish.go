@@ -93,6 +93,7 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 		Order("wishes.created_at desc").
 		Offset(offset).
 		Limit(pageSize).
+		Preload("User").
 		Find(&wishes).Error; err != nil {
 		logger.Log.Errorw("获取公共愿望墙失败：查询愿望出错", "tag", tag, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -135,6 +136,8 @@ func GetPublicWishes(c *gin.Context, db *gorm.DB) {
 			"likeCount":    w.LikeCount,
 			"commentCount": w.CommentCount,
 			"userId":       w.UserID,
+			"userNickname": w.User.Nickname,
+			"userAvatar":   w.User.AvatarID,
 			"createdAt":    w.CreatedAt,
 			"updatedAt":    w.UpdatedAt,
 		}

@@ -76,18 +76,32 @@ func CreateWish(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
+	// 查询当前用户信息（用于写入冗余的用户昵称/头像，便于列表直接展示）
+	var author model.User
+	if err := db.First(&author, userID).Error; err != nil {
+		logger.Log.Errorw("创建愿望失败：查询作者信息失败", "userID", userID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    apperr.ERROR_SERVER_ERROR,
+			"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+			"data":    gin.H{},
+		})
+		return
+	}
+
 	//  构造 Wish 并保存
 	isPublic := true
 	if req.IsPublic != nil {
 		isPublic = *req.IsPublic
 	}
 	wish := model.Wish{
-		UserID:     userID,
-		Content:    req.Content,
-		Background: req.Background,
-		IsPublic:   isPublic,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		UserID:       userID,
+		UserNickname: author.Nickname,
+		UserAvatarID: author.AvatarID,
+		Content:      req.Content,
+		Background:   req.Background,
+		IsPublic:     isPublic,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		// 1. 创建 Wish

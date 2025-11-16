@@ -3,9 +3,9 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
-	"os"
 
 	apperr "github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/err"
 	"github.com/NCUHOME-Y/25-HACK-2-xueluocangyuan_wish_wall-BE/internal/pkg/logger"
@@ -15,20 +15,61 @@ import (
 )
 
 func CORSMiddleware() gin.HandlerFunc {
+	// 支持多域名白名单，环境变量 CORS_ALLOWED_ORIGINS 以逗号分隔
+	// 例如："https://snowkeptwishes.ncuhos.com,http://localhost:5173"
+	// 若为空，使用安全默认：允许上述两个常用来源
+	allowedEnv := os.Getenv("CORS_ALLOWED_ORIGINS")
+	var allowList []string
+	if allowedEnv == "" {
+		allowList = []string{
+			"https://snowkeptwishes.ncuhos.com",
+			"http://localhost:5173",
+		}
+	} else {
+		parts := strings.Split(allowedEnv, ",")
+		for _, p := range parts {
+			o := strings.TrimSpace(p)
+			if o != "" {
+				allowList = append(allowList, o)
+			}
+		}
+		if len(allowList) == 0 {
+			allowList = []string{"https://snowkeptwishes.ncuhos.com", "http://localhost:5173"}
+		}
+	}
+
+	// 小工具：判断请求 Origin 是否在白名单
+	isAllowed := func(origin string) bool {
+		if origin == "" {
+			return false
+		}
+		for _, a := range allowList {
+			if strings.EqualFold(a, origin) {
+				return true
+			}
+		}
+		return false
+	}
+
 	return func(c *gin.Context) {
-		allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
-        if allowedOrigin == "" {
-            allowedOrigin = "http://localhost:5173" // 备用值
-        }
-        // 使用来自环境变量的值
-        c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		
+		reqOrigin := c.Request.Header.Get("Origin")
+		if isAllowed(reqOrigin) {
+			// 只能回显具体 Origin（启用凭证时不能用 *）
+			c.Writer.Header().Set("Access-Control-Allow-Origin", reqOrigin)
+			c.Writer.Header().Set("Vary", "Origin")
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, AccessToken, X-CSRF-Token, Authorization, Token, x-token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
 
-		if c.Request.Method == "OPTIONS" {
+		if c.Request.Method == http.MethodOptions {
+			// 预检请求：若来源不在白名单，拒绝；否则放行 204
+			if !isAllowed(reqOrigin) {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
@@ -36,7 +77,6 @@ func CORSMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
 
 func LoggerMiddleware() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
@@ -61,9 +101,9 @@ func RecoveryMiddleware() gin.HandlerFunc {
 				logger.Log.Errorw("服务器崩溃 (Panic)", "error", r)
 
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"code":    apperr.ERROR_SERVER_ERROR,                // code: 10
-					"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR), 
-					"data":    gin.H{},                                  
+					"code":    apperr.ERROR_SERVER_ERROR, // code: 10
+					"message": apperr.GetMsg(apperr.ERROR_SERVER_ERROR),
+					"data":    gin.H{},
 				})
 			}
 		}()
@@ -78,8 +118,8 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    apperr.ERROR_UNAUTHORIZED,                // code: 3
-				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED), 
+				"code":    apperr.ERROR_UNAUTHORIZED, // code: 3
+				"message": apperr.GetMsg(apperr.ERROR_UNAUTHORIZED),
 				"data":    gin.H{"error": "未提供 Authorization Header"},
 			})
 			c.Abort()

@@ -78,7 +78,7 @@ func Register(c *gin.Context, db *gorm.DB) {
 	// AI审核昵称
 	isViolating, aiErr := service.CheckContent(req.Nickname)
 	if aiErr != nil {
-		// AI 服务本身出错 
+		// AI 服务本身出错
 		logger.Log.Warnw("注册时昵称审核服务失败或输入无效", "nickname", req.Nickname, "error", aiErr)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    apperr.ERROR_PARAM_INVALID,
@@ -354,6 +354,23 @@ func UpdateUser(c *gin.Context, db *gorm.DB) {
 			"data":    gin.H{},
 		})
 		return
+	}
+
+	// 同步更新该用户已发布愿望中的冗余字段（昵称、头像）
+	// 为保证性能，这里一次性批量更新，不逐条加载。
+	if req.Nickname != nil || req.AvatarID != nil {
+		updates := map[string]interface{}{}
+		if req.Nickname != nil {
+			updates["user_nickname"] = user.Nickname
+		}
+		if req.AvatarID != nil {
+			updates["user_avatar_id"] = user.AvatarID
+		}
+		if len(updates) > 0 {
+			if err := db.Model(&model.Wish{}).Where("user_id = ?", user.ID).Updates(updates).Error; err != nil {
+				logger.Log.Errorw("UpdateUser: 同步更新愿望冗余用户信息失败", "userID", user.ID, "error", err)
+			}
+		}
 	}
 	//返回更新后的用户信息
 	responseUser := UserResponse{
