@@ -70,7 +70,7 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 		// Check if like already exists within the transaction
 		var existingLike model.Like
 		if err := tx.Where("wish_id = ? AND user_id = ?", wishID, userID).First(&existingLike).Error; err == nil {
-			
+
 			// Soft delete would retain the row and keep uniqueIndex (wish_id,user_id) blocked, causing duplicate key errors on re-like.
 			if err := tx.Unscoped().Delete(&existingLike).Error; err != nil {
 				logger.Log.Errorw("取消点赞失败", "wishID", wishID, "userID", userID, "error", err)
@@ -161,6 +161,7 @@ func LikeWish(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 5. 成功返回
+	logger.Log.Infow("点赞状态变更成功", "wishID", wishID, "userID", userID, "liked", finalLiked, "likeCount", finalLikeCount)
 	RespondLike(c, finalLikeCount, finalLiked, wishID)
 }
 

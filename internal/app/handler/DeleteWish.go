@@ -128,6 +128,7 @@ func DeleteWish(c *gin.Context, db *gorm.DB) {
 	}
 
 	// 成功返回
+	logger.Log.Infow("删除愿望成功", "wishID", wishID, "userID", userID)
 	c.JSON(http.StatusOK, gin.H{
 		"code":    apperr.SUCCESS,
 		"message": apperr.GetMsg(apperr.SUCCESS),
